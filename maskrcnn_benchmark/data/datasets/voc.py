@@ -1,14 +1,11 @@
 import os
 import pdb
+import sys
 
+import scipy.io as scio
 import torch
 import torch.utils.data
 from PIL import Image
-import sys
-import scipy.io as scio
-import cv2
-import numpy
-from maskrcnn_benchmark.data.transforms import Compose
 
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
@@ -18,13 +15,15 @@ else:
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.modeling.draw import draw_image_target
 
+
 class PascalVOCDataset(torch.utils.data.Dataset):
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
                "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True):
@@ -164,14 +163,13 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         target.add_field("labels", anno["labels"])
         draw_image_target(img_id, target)
 
-
     def __getitem__(self, index):
         img_id = self.final_ids[index]
         img = Image.open(self._imgpath % img_id).convert("RGB")
-        #print(self._imgpath % img_id)
-        #img_initial = img
-        #print("process img_initial")
-        #self.draw(index)
+        # print(self._imgpath % img_id)
+        # img_initial = img
+        # print("process img_initial")
+        # self.draw(index)
 
         target = self.get_groundtruth(index)
         target = target.clip_to_image(remove_empty=True)
@@ -181,7 +179,6 @@ class PascalVOCDataset(torch.utils.data.Dataset):
             proposal = proposal.clip_to_image(remove_empty=True)
         else:
             proposal = None
-
 
         if self.transforms is not None:
             # if not self.is_train:
@@ -262,7 +259,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                 if name == old:
                     old_class_flag = True
                     break
-            
+
             exclude_class_flag = False
             for exclude in self.exclude_classes:
                 if name == exclude:
@@ -277,10 +274,10 @@ class PascalVOCDataset(torch.utils.data.Dataset):
 
             if exclude_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
             elif self.is_train and old_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
             else:
                 boxes.append(bndbox)
                 gt_classes.append(self.class_to_ind[name])
@@ -318,7 +315,7 @@ def main():
     use_difficult = False
     transforms = None
     pdb.set_trace()
-    dataset = PascalVOCDataset(data_dir, split, use_difficult, transforms,is_train=False)
+    dataset = PascalVOCDataset(data_dir, split, use_difficult, transforms, is_train=False)
 
 
 if __name__ == '__main__':

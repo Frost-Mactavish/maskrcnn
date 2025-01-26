@@ -3,21 +3,18 @@
 Implements the Generalized R-CNN framework
 """
 
-import torch
-import torch.nn.functional as F
-from torch import nn
 import random
-import numpy as np
-import pdb
-from maskrcnn_benchmark.structures.image_list import to_image_list
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.layers import smooth_l1_loss
 
-from ..backbone import build_backbone
-from ..rpn.rpn import build_rpn
-from ..roi_heads.roi_heads import build_roi_heads
-from ..rpn.utils import permute_and_flatten
+import torch
+from torch import nn
+
 from maskrcnn_benchmark.modeling.attention_map import generate_attention_map
+from maskrcnn_benchmark.structures.bounding_box import BoxList
+from maskrcnn_benchmark.structures.image_list import to_image_list
+from ..backbone import build_backbone
+from ..roi_heads.roi_heads import build_roi_heads
+from ..rpn.rpn import build_rpn
+
 
 class GeneralizedRCNN(nn.Module):
     """
@@ -49,7 +46,7 @@ class GeneralizedRCNN(nn.Module):
         # here, adding we use cfg.INCREMENTAL to use unbiased CE loss as in MiB
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
 
-    def forward(self, images, targets=None, pseudo_targets = None, rpn_output_source=None, features=None, proposals=None):
+    def forward(self, images, targets=None, pseudo_targets=None, rpn_output_source=None, features=None, proposals=None):
         """
         Arguments:
             images (list[Tensor] or ImageList): images to be processed
@@ -66,7 +63,8 @@ class GeneralizedRCNN(nn.Module):
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
         if features is not None and proposals is not None:
-            target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features, proposals)
+            target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(
+                features, proposals)
             return (target_scores, target_bboxes), mask_logits, roi_align_features
         else:
             images = to_image_list(images)
@@ -75,20 +73,24 @@ class GeneralizedRCNN(nn.Module):
 
             if self.cfg.UNK.ENABLE:
                 attention_maps = generate_attention_map(features=features)
-                (proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets, rpn_output_source, attention_maps=attention_maps)
+                (proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets,
+                                                                             rpn_output_source,
+                                                                             attention_maps=attention_maps)
             else:
-                (proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets, rpn_output_source)
+                (proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets,
+                                                                             rpn_output_source)
 
             if self.roi_heads:
                 if self.training:
-                    #x, result, soften_results, detector_losses, roi_align_features = self.roi_heads(features, proposals, targets, pseudo_targets,iteration)
+                    # x, result, soften_results, detector_losses, roi_align_features = self.roi_heads(features, proposals, targets, pseudo_targets,iteration)
                     if self.cfg.UNK.ENABLE:
-                        result, detector_losses = self.roi_heads(features, proposals, targets, pseudo_targets, attention_maps=attention_maps)
+                        result, detector_losses = self.roi_heads(features, proposals, targets, pseudo_targets,
+                                                                 attention_maps=attention_maps)
                     else:
                         result, detector_losses = self.roi_heads(features, proposals, targets, pseudo_targets)
                 else:
                     x, result, results_background, _ = self.roi_heads(features, targets)
-                    return result, features, results_background             
+                    return result, features, results_background
                 proposals = result
             else:
                 # RPN-only models don't have roi_heads
@@ -100,7 +102,7 @@ class GeneralizedRCNN(nn.Module):
                 losses = {}
                 losses.update(detector_losses)
                 losses.update(proposal_losses)
-                #return losses, features, backbone_features, anchors, rpn_output, proposals, roi_align_features, soften_results
+                # return losses, features, backbone_features, anchors, rpn_output, proposals, roi_align_features, soften_results
                 return losses, features, rpn_output
 
             return result, features,
@@ -139,7 +141,6 @@ class GeneralizedRCNN(nn.Module):
         images = to_image_list(images)
         features, backbone_features = self.backbone(images.tensors)
 
-
         class_logits = self.rpn.feature_extraction(features)
 
         if self.roi_heads:
@@ -160,7 +161,8 @@ class GeneralizedRCNN(nn.Module):
 
         images = to_image_list(images)  # convert images to image_list type
         features, backbone_features = self.backbone(images.tensors)  # extra image features from backbone network
-        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets)  # use RPN to generate ROIs
+        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features,
+                                                                         targets)  # use RPN to generate ROIs
 
         all_selected_proposals = []
         for k in range(len(all_proposals)):
@@ -192,17 +194,21 @@ class GeneralizedRCNN(nn.Module):
                     selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
                     selected_proposal_score = proposal_score[element].view(-1, 1)
                 else:
-                    selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)), 0)  # vertical tensor cascated
-                    selected_proposal_score = torch.cat((selected_proposal_score, proposal_score[element].view(-1, 1)), 1)  # horizontal cascate tensors
+                    selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)),
+                                                       0)  # vertical tensor cascated
+                    selected_proposal_score = torch.cat((selected_proposal_score, proposal_score[element].view(-1, 1)),
+                                                        1)  # horizontal cascate tensors
             selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
             selected_proposal_score = selected_proposal_score.view(-1)
             selected_proposals = BoxList(selected_proposal_bbox, image_size, proposal_mode)
             selected_proposals.add_field("objectness", selected_proposal_score)
             all_selected_proposals.append(selected_proposals)
         # generate soften proposal labels
-        soften_scores, soften_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features, all_selected_proposals)  # use ROI-subnet to generate final results
+        soften_scores, soften_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features,
+                                                                                                              all_selected_proposals)  # use ROI-subnet to generate final results
 
-        return (soften_scores, soften_bboxes), mask_logits, all_selected_proposals, features, backbone_features, anchors, rpn_output, roi_align_features
+        return (soften_scores,
+                soften_bboxes), mask_logits, all_selected_proposals, features, backbone_features, anchors, rpn_output, roi_align_features
 
     def generate_soften_label_external_proposal(self, images, proposals, targets=None):
 
@@ -222,7 +228,8 @@ class GeneralizedRCNN(nn.Module):
                 selected_proposal_bbox = proposal_bbox[element]
                 selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
             else:
-                selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)), 0)  # vertical tensor cascated
+                selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)),
+                                                   0)  # vertical tensor cascated
         selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
         selected_proposals = BoxList(selected_proposal_bbox, image_size, proposal_mode)
         selected_proposals = [selected_proposals]
@@ -232,13 +239,12 @@ class GeneralizedRCNN(nn.Module):
 
         return (soften_scores, soften_bboxes), selected_proposals
 
-
     def feature_extraction_by_rpn(self, features):
         class_logits = self.rpn.feature_extraction(features)
         return class_logits
 
     def generate_pseudo_targets(self, images):
-        #pdb.set_trace()
+        # pdb.set_trace()
         images = to_image_list(images)
 
         features, _ = self.backbone(images.tensors)
@@ -253,6 +259,7 @@ class GeneralizedRCNN(nn.Module):
 
         images = to_image_list(images)  # convert images to image_list type
         features, backbone_features = self.backbone(images.tensors)  # extra image features from backbone network
-        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, None)  # use RPN to generate ROIs
+        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features,
+                                                                         None)  # use RPN to generate ROIs
 
         return features, rpn_output

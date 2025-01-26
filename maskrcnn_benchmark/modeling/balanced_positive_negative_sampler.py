@@ -6,6 +6,7 @@ from maskrcnn_benchmark.modeling.draw import draw_singe_image, Draw_singe_image
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.layers import nms as _box_nms
 
+
 class BalancedPositiveNegativeSampler(object):
     """
     This class samples batches, ensuring that they contain a fixed proportion of positives
@@ -20,7 +21,8 @@ class BalancedPositiveNegativeSampler(object):
         self.batch_size_per_image = batch_size_per_image
         self.positive_fraction = positive_fraction
 
-    def __call__(self, matched_idxs, objectness=None, proposals=None, targets=None, attention_maps=None, match_matrix=None, img_id=None, unk_num=None, images=None):
+    def __call__(self, matched_idxs, objectness=None, proposals=None, targets=None, attention_maps=None,
+                 match_matrix=None, img_id=None, unk_num=None, images=None):
         """
         Arguments:
             matched idxs: list of tensors containing -1, 0 or positive values.
@@ -39,7 +41,7 @@ class BalancedPositiveNegativeSampler(object):
 
         pos_idx = []
         neg_idx = []
-        
+
         if proposals is None:
             for matched_idxs_per_image in matched_idxs:
                 positive = torch.nonzero(matched_idxs_per_image >= 1).squeeze(1)
@@ -78,7 +80,7 @@ class BalancedPositiveNegativeSampler(object):
         #     unk_obj_thresh = 0.75
         #     nms_thresh = 0.5
         #     for matched_idxs_per_image, proposal_per_image, per_attention_map, target_per_image, match_matrix_per_image, id_per_img, per_img in zip(matched_idxs, proposals, targets, match_matrix, img_id, images):
-                
+
         #         positive = torch.nonzero(matched_idxs_per_image >= 1).squeeze(1)
         #         negative = torch.nonzero(matched_idxs_per_image == 0).squeeze(1) # 属于负样本的index
 
@@ -91,7 +93,7 @@ class BalancedPositiveNegativeSampler(object):
 
         #         # randomly select positive and negative examples
         #         perm_pos = torch.randperm(positive.numel(), device=positive.device)[:num_pos]
-                
+
         #         neg_all = torch.randperm(negative.numel(), device=negative.device)
         #         perm_neg = neg_all[:num_neg]
         #         extra_neg = neg_all[num_neg:]
@@ -149,7 +151,7 @@ class BalancedPositiveNegativeSampler(object):
         #         pos_idx.append(pos_idx_per_image_mask)
         #         neg_idx.append(neg_idx_per_image_mask)            
         # return pos_idx, neg_idx
-     
+
         return pos_idx, neg_idx
 
 
@@ -165,7 +167,7 @@ def boxlist_nms(boxlist, nms_thresh=0.5, max_proposals=-1, score_field="scores")
             after non-maximum suppression
         score_field (str)
     """
-    #pdb.set_trace()
+    # pdb.set_trace()
     mode = boxlist.mode
     boxlist = boxlist.convert("xyxy")
     boxes = boxlist.bbox
@@ -175,8 +177,6 @@ def boxlist_nms(boxlist, nms_thresh=0.5, max_proposals=-1, score_field="scores")
         keep = keep[: max_proposals]
     boxlist = boxlist[keep]
     return boxlist.convert(mode)
-
-
 
 # 从未被采样的负样本中补充前景分数最小的num_unk个样本
 # remaining_negatives = negative[extra_neg]

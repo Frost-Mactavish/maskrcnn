@@ -1,8 +1,7 @@
-import os
-import torch
 import argparse
-from maskrcnn_benchmark.utils.c2_model_loading import load_c2_format
+import os
 
+import torch
 
 parser = argparse.ArgumentParser(description="Trim Detection weights and save in PyTorch format.")
 parser.add_argument(
@@ -22,8 +21,8 @@ base_dir = 'mask_out' if args.instance else "output"
 
 name = args.name
 args.pretrained_path = f"{base_dir}/{name}/model_final.pth"
-#args.pretrained_path = "output/10-10/LR01_BS8_FILOD/model_0006000.pth"
-#args.save_path = f"output/10-10/LR01_BS8_FILOD/model_trimmed.pth"
+# args.pretrained_path = "output/10-10/LR01_BS8_FILOD/model_0006000.pth"
+# args.save_path = f"output/10-10/LR01_BS8_FILOD/model_trimmed.pth"
 args.save_path = f"{base_dir}/{name}/model_trimmed.pth"
 PRETRAINED_PATH = os.path.expanduser(args.pretrained_path)
 print('pretrained model path: {}'.format(PRETRAINED_PATH))

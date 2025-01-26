@@ -1,20 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
-import time
 import os
+
 import cv2
-import torch
-from tqdm import tqdm
-from PIL import Image
-from maskrcnn_benchmark.data import datasets
-from maskrcnn_benchmark.data.datasets.evaluation import evaluate
-from ..structures.segmentation_mask import SegmentationMask
-from ..utils.comm import is_main_process, get_world_size
-from ..utils.comm import all_gather
-from ..utils.comm import synchronize
-from ..utils.timer import Timer, get_time_str
 import numpy as np
+import torch
+from PIL import Image
+from tqdm import tqdm
+
+from maskrcnn_benchmark.data.datasets.evaluation import evaluate
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from ..utils.comm import is_main_process, get_world_size
+from ..utils.timer import Timer, get_time_str
+
 
 def bb_intersection_over_union(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
@@ -40,10 +38,12 @@ def bb_intersection_over_union(boxA, boxB):
     # return the intersection over union value
     return iou
 
+
 def compute_on_dataset(model, data_loader, device, timer=None, external_proposal=False, summary_writer=None):
-    NAME_CLASSES = np.array(["#bkg","aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-                    "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
-                       "tvmonitor"])
+    NAME_CLASSES = np.array(
+        ["#bkg", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+         "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+         "tvmonitor"])
     model.eval()
     conf_matrix = torch.zeros((len(NAME_CLASSES), len(NAME_CLASSES)))
     # BACK_CONF_THRESHOLD = 0.3
@@ -67,11 +67,11 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
                 output = model.use_external_proposals_edgeboxes(images, proposals)
             else:
                 targets = [target.to(device) for target in targets]
-                #output, features, results_background = model(images, targets)
+                # output, features, results_background = model(images, targets)
                 output, features, results_background = model(images)
 
-                #draw_image(img_id, targets, output)
-                #visual_prediction(output, img_id)
+                # draw_image(img_id, targets, output)
+                # visual_prediction(output, img_id)
 
             if timer:
                 torch.cuda.synchronize()
@@ -95,6 +95,7 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     # with open("conf_matrix_FILOD_UCE_UKDx10_15_15.txt", "w") as f:
     #     print(conf_matrix, file=f)
     return results_dict, results_background_dict
+
 
 def test_background_fall(dataset, idx, results, results_background, n_classes):
     add_matrix = torch.zeros((n_classes, n_classes))
@@ -152,9 +153,8 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
 
 
 def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=False, device="cuda",
-        expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
+              expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
               alphabetical_order=True, summary_writer=None, save_predictions=False):
-
     # ONLY SUPPORTED ON SINGLE GPU!
     print('inference.py | alphabetical_order: {0}'.format(alphabetical_order))
     # convert to a torch.device for efficiency
@@ -166,8 +166,9 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions, back_predictions = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal, summary_writer)
-    #pdb.set_trace()
+    predictions, back_predictions = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal,
+                                                       summary_writer)
+    # pdb.set_trace()
     # wait for all processes to complete before measuring the time
     # synchronize()
     total_time = total_timer.toc()
@@ -209,9 +210,6 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
                     **extra_args)
 
 
-
-
-
 # 类别列表
 CATEGORIES = [
     "__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle",
@@ -228,9 +226,10 @@ COLORS = [(np.random.randint(255), np.random.randint(255), np.random.randint(254
 # 红色框用于标注ground truth targets
 RED_COLOR = (0, 0, 255)
 
+
 def draw_image(all_img_id, all_input_targets, all_input_proposals):
     imgpath = os.path.join("data/voc07/VOCdevkit/VOC2007", "JPEGImages", "%s.jpg")
-    #pdb.set_trace()
+    # pdb.set_trace()
     for img_id, input_targets, input_proposals in zip(all_img_id, all_input_targets, all_input_proposals):
         per_img_path = imgpath % img_id
         input_images = Image.open(per_img_path).convert("RGB")
@@ -263,7 +262,6 @@ def draw_image(all_img_id, all_input_targets, all_input_proposals):
         cv2.imwrite(output_image_path, img)
 
 
-
 def visual_prediction(predicitons, img_ids):
     for i in range(len(img_ids)):
         img_path = os.path.join("data/voc07/VOCdevkit/VOC2007", "JPEGImages", "{:06d}.jpg".format(img_ids[i]))
@@ -271,6 +269,7 @@ def visual_prediction(predicitons, img_ids):
         result = image.copy()
         result = overlay_boxes(result, predicitons)
         result = overlay_class_names(result, predicitons)
+
 
 def compute_colors_for_labels(labels):
     """
@@ -280,6 +279,7 @@ def compute_colors_for_labels(labels):
     colors = labels[:, None] * palette
     colors = (colors % 255).numpy().astype("uint8")
     return colors
+
 
 def overlay_boxes(image, predictions):
     """
@@ -304,6 +304,7 @@ def overlay_boxes(image, predictions):
 
     return image
 
+
 def overlay_class_names(image, predictions):
     """
     Adds detected class names and scores in the positions defined by the
@@ -315,8 +316,8 @@ def overlay_class_names(image, predictions):
             It should contain the field `scores` and `labels`.
     """
     CATEGORIES = [
-        "__background","aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-        "diningtable", "dog","horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"
+        "__background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+        "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"
     ]
     scores = predictions.get_field("scores").tolist()
     labels = predictions.get_field("labels").tolist()

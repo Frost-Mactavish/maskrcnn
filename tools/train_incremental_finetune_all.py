@@ -1,52 +1,39 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
-import os
 import datetime
 import logging
+import os
+import random
 import time
+import warnings
+
+import numpy as np
 import torch
 import torch.distributed as dist
-from torch import nn
-import numpy as np
-import cv2
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from PIL import Image
-import pdb
+
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import data set
+from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
+from maskrcnn_benchmark.distillation.finetune_distillation_all import soften_proposales_iou_targets, \
+    calculate_roi_scores_distillation_losses_old_raw, calculate_roi_scores_distillation_losses_new_raw
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
+from maskrcnn_benchmark.modeling.pseudo_labels import merge_pseudo_labels
 from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
 from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, \
     get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.finetune_distillation_all import soften_proposales_iou_targets, calculate_roi_scores_distillation_losses_old_raw, calculate_roi_scores_distillation_losses_new_raw
-from maskrcnn_benchmark.modeling.pseudo_labels import merge_pseudo_labels
-import random
-
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
-
-import warnings
+from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -57,7 +44,8 @@ def do_train(model_source, model_finetune, model_target, data_loader, optimizer,
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(
+        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  #
     print(start_iter)
     logger.info("random number: {}".format(random.randint(1, 1000)))
@@ -76,24 +64,26 @@ def do_train(model_source, model_finetune, model_target, data_loader, optimizer,
 
         images = images.to(device)  # move images to the device
         targets = [target.to(device) for target in targets]  # move targets (labels) to the device
-        
+
         with torch.no_grad():
-            soften_result, _, soften_proposal, _, _, _, rpn_output_source, _ = model_source.generate_soften_proposal(images)
+            soften_result, _, soften_proposal, _, _, _, rpn_output_source, _ = model_source.generate_soften_proposal(
+                images)
             feature_finetune, rpn_output_finetune = model_finetune.generate_features_rpn_output(images)
             finetune_result, _, _ = model_finetune.forward(images, features=feature_finetune, proposals=soften_proposal)
             if cfg.PSEUDO_LABELS.ENABLE:
                 pseudo_targets, prev_features, _ = model_source.generate_pseudo_targets(images)
 
         ###### BRIDGE THE PAST ######
-        merged_target = merge_pseudo_labels(pseudo_targets, targets, cfg.IOU_LOW, cfg.IOU_HIGH, cfg.LOW_WEIGHT, cfg.HIGH_WEIGHT)
+        merged_target = merge_pseudo_labels(pseudo_targets, targets, cfg.IOU_LOW, cfg.IOU_HIGH, cfg.LOW_WEIGHT,
+                                            cfg.HIGH_WEIGHT)
         #############################
 
-        loss_dict_target, feature_target ,rpn_output_target = \
-            model_target(images, merged_target, pseudo_targets = pseudo_targets, rpn_output_source=rpn_output_source)
-        
+        loss_dict_target, feature_target, rpn_output_target = \
+            model_target(images, merged_target, pseudo_targets=pseudo_targets, rpn_output_source=rpn_output_source)
+
         faster_rcnn_losses = sum(loss for loss in loss_dict_target.values())  # summarise the losses for faster rcnn
 
-        target_result, _, _ = model_target.forward(images, targets, features=feature_target,proposals=soften_proposal)
+        target_result, _, _ = model_target.forward(images, targets, features=feature_target, proposals=soften_proposal)
 
         distillation_losses = torch.tensor(0.).to(device)
 
@@ -110,24 +100,28 @@ def do_train(model_source, model_finetune, model_target, data_loader, optimizer,
             soften_indexes = torch.cat(soften_indexes, dim=0)
             finetune_indexes = torch.cat(finetune_indexes, dim=0)
 
-            if len(soften_indexes)>0:
-                dis_soften_result = (soften_result[0][soften_indexes],soften_result[1][soften_indexes])
-                dis_target_soften_result = (target_result[0][soften_indexes],target_result[1][soften_indexes])
-                dis_finetune_soften_result = (finetune_result[0][soften_indexes],finetune_result[1][soften_indexes])
+            if len(soften_indexes) > 0:
+                dis_soften_result = (soften_result[0][soften_indexes], soften_result[1][soften_indexes])
+                dis_target_soften_result = (target_result[0][soften_indexes], target_result[1][soften_indexes])
+                dis_finetune_soften_result = (finetune_result[0][soften_indexes], finetune_result[1][soften_indexes])
 
                 soften_class_distillation_loss_raw, soften_bbox_distillation_loss_raw = \
-                    calculate_roi_scores_distillation_losses_old_raw(dis_soften_result, dis_finetune_soften_result, dis_target_soften_result)
-                class_distillation_loss = torch.cat([class_distillation_loss,soften_class_distillation_loss_raw],dim=0)
-                bbox_distillation_loss = torch.cat([bbox_distillation_loss,soften_bbox_distillation_loss_raw],dim=0)
-            
-            if len(finetune_indexes)>0:
-                dis_finetune_result = (finetune_result[0][finetune_indexes],finetune_result[1][finetune_indexes])
-                dis_soften_finetune_result = (soften_result[0][finetune_indexes],soften_result[1][finetune_indexes])
-                dis_target_finetune_result = (target_result[0][finetune_indexes],target_result[1][finetune_indexes])
+                    calculate_roi_scores_distillation_losses_old_raw(dis_soften_result, dis_finetune_soften_result,
+                                                                     dis_target_soften_result)
+                class_distillation_loss = torch.cat([class_distillation_loss, soften_class_distillation_loss_raw],
+                                                    dim=0)
+                bbox_distillation_loss = torch.cat([bbox_distillation_loss, soften_bbox_distillation_loss_raw], dim=0)
+
+            if len(finetune_indexes) > 0:
+                dis_finetune_result = (finetune_result[0][finetune_indexes], finetune_result[1][finetune_indexes])
+                dis_soften_finetune_result = (soften_result[0][finetune_indexes], soften_result[1][finetune_indexes])
+                dis_target_finetune_result = (target_result[0][finetune_indexes], target_result[1][finetune_indexes])
                 finetune_class_distillation_loss_raw, finetune_bbox_distillation_loss_raw = \
-                    calculate_roi_scores_distillation_losses_new_raw(dis_soften_finetune_result, dis_finetune_result, dis_target_finetune_result)
-                class_distillation_loss = torch.cat([class_distillation_loss,finetune_class_distillation_loss_raw],dim=0)
-                bbox_distillation_loss = torch.cat([bbox_distillation_loss,finetune_bbox_distillation_loss_raw],dim=0)
+                    calculate_roi_scores_distillation_losses_new_raw(dis_soften_finetune_result, dis_finetune_result,
+                                                                     dis_target_finetune_result)
+                class_distillation_loss = torch.cat([class_distillation_loss, finetune_class_distillation_loss_raw],
+                                                    dim=0)
+                bbox_distillation_loss = torch.cat([bbox_distillation_loss, finetune_bbox_distillation_loss_raw], dim=0)
 
             class_distillation_loss = class_distillation_loss.mean()
             bbox_distillation_loss = bbox_distillation_loss.mean()
@@ -193,7 +187,7 @@ def do_train(model_source, model_finetune, model_target, data_loader, optimizer,
 
         # Every time meets the checkpoint_period, save the target model (parameters)
         if iteration % checkpoint_period == 0:
-            #checkpointer_target.save("model_last", **arguments_target)
+            # checkpointer_target.save("model_last", **arguments_target)
             checkpointer_target.save("model_{:07d}".format(iteration), **arguments_target)
         # When meets the last iteration, save the target model (parameters)
         if iteration == max_iter:
@@ -220,7 +214,7 @@ def train(cfg_source, cfg_finetune, cfg_target, logger_target, distributed, num_
     model_target = build_detection_model(cfg_target)  # create the target model
     device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
     model_target.to(device)  # move target model to gpu
-    model_finetune.to(device)   # move finetune model to gpu
+    model_finetune.to(device)  # move finetune model to gpu
     model_source.to(device)  # move source model to gpu
 
     optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
@@ -250,25 +244,25 @@ def train(cfg_source, cfg_finetune, cfg_target, logger_target, distributed, num_
                                                 save_dir=output_dir_source,
                                                 save_to_disk=save_to_disk)
     extra_checkpoint_data_source = checkpointer_source.load(cfg_source.MODEL.SOURCE_WEIGHT)
-    print("cfg_source.MODEL.SOURCE_WEIGHT:",cfg_source.MODEL.SOURCE_WEIGHT)
+    print("cfg_source.MODEL.SOURCE_WEIGHT:", cfg_source.MODEL.SOURCE_WEIGHT)
 
     # create check pointer for finetune model & load the pre-trained model parameter to finetune model
     checkpointer_finetune = DetectronCheckpointer(cfg_finetune, model_finetune, optimizer=None, scheduler=None,
-                                                save_dir=output_dir_finetune,
-                                                save_to_disk=save_to_disk)
+                                                  save_dir=output_dir_finetune,
+                                                  save_to_disk=save_to_disk)
     extra_checkpoint_data_finetune = checkpointer_finetune.load(cfg_finetune.MODEL.FINETUNE_WEIGHT)
-    print("cfg_finetune.MODEL.FINETUNE_WEIGHT:",cfg_finetune.MODEL.FINETUNE_WEIGHT)
+    print("cfg_finetune.MODEL.FINETUNE_WEIGHT:", cfg_finetune.MODEL.FINETUNE_WEIGHT)
 
     # create check pointer for target model & load the pre-trained model parameter to target model
     checkpointer_target = DetectronCheckpointer(cfg_target, model_target, optimizer=optimizer, scheduler=scheduler,
                                                 save_dir=output_dir_target,
                                                 save_to_disk=save_to_disk, logger=logger_target)
     extra_checkpoint_data_target = checkpointer_target.load(cfg_target.MODEL.WEIGHT)
-    print("cfg_target.MODEL.WEIGHT:",cfg_target.MODEL.WEIGHT)
+    print("cfg_target.MODEL.WEIGHT:", cfg_target.MODEL.WEIGHT)
     # dict updating method to update the parameter dictionary for source model
     arguments_source.update(extra_checkpoint_data_source)
     # dict updating method to update the parameter dictionary for source model
-    arguments_finetune.update(extra_checkpoint_data_finetune)    
+    arguments_finetune.update(extra_checkpoint_data_finetune)
     # dict updating method to update the parameter dictionary for target model
     arguments_target.update(extra_checkpoint_data_target)
 
@@ -292,11 +286,11 @@ def train(cfg_source, cfg_finetune, cfg_target, logger_target, distributed, num_
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
 
     # train the model
-    #do_train(model_source, model_target, data_loader, optimizer, scheduler, checkpointer_source, checkpointer_target,
+    # do_train(model_source, model_target, data_loader, optimizer, scheduler, checkpointer_source, checkpointer_target,
     #         device, checkpoint_period, arguments_source, arguments_target, summary_writer, cfg_target, distributed)
     del checkpointer_source, arguments_source, extra_checkpoint_data_source, extra_checkpoint_data_target
     do_train(model_source, model_finetune, model_target, data_loader, optimizer, scheduler, checkpointer_target,
-            device, checkpoint_period, arguments_target, summary_writer, cfg_target, distributed)
+             device, checkpoint_period, arguments_target, summary_writer, cfg_target, distributed)
 
     checkpointer_target.save("model_trimmed", trim=True, **arguments_target)
 
@@ -341,11 +335,13 @@ def test(cfg):
             alphabetical_order=cfg.TEST.COCO_ALPHABETICAL_ORDER,
             summary_writer=summary_writer
         )
-        #pdb.set_trace()
+        # pdb.set_trace()
         if not cfg.MODEL.MASK_ON:
-            ap_old = result["ap"][1:len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)+1].mean()
-            ap_new = result["ap"][len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)+1:1+len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)+len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)].mean()
-            ap_all = result["ap"][1:1+len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)+len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)].mean()
+            ap_old = result["ap"][1:len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1].mean()
+            ap_new = result["ap"][len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1:1 + len(
+                cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)].mean()
+            ap_all = result["ap"][1:1 + len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + len(
+                cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)].mean()
 
             with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
                 fid.write(cfg.NAME)
@@ -355,6 +351,7 @@ def test(cfg):
                 fid.write("\n".join([str(x) for x in result["ap"][1:]]))
                 fid.write("\n")
                 fid.write(f"ap_old:{ap_old}, ap_new:{ap_new} , ap_all:{ap_all}\n")
+
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
@@ -493,7 +490,6 @@ def main():
         )
         synchronize()
 
-
     random_seed = args.seed
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
@@ -545,7 +541,7 @@ def main():
         cfg_target.DIST.CLS = args.cls
     else:
         cfg_target.DIST.CLS = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) / \
-                                                          cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
+                              cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
     cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.INIT = args.init
     cfg_target.DIST.ALPHA = args.alpha
@@ -589,7 +585,7 @@ def main():
         logger_target.info("\n" + collect_env_info())
         # open and read the input yaml file, store it on source config_str and display on the screen
         with open(target_model_config_file, "r") as cf:
-             target_config_str = "\n" + cf.read()
+            target_config_str = "\n" + cf.read()
         logger_target.info(target_config_str)
         logger_target.info("Running with config:\n{}".format(cfg_target))
     else:

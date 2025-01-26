@@ -1,6 +1,7 @@
 ## Installation
 
 ### Requirements:
+
 - torchvision from master
 - cocoapi
 - yacs
@@ -8,7 +9,6 @@
 - GCC >= 4.9
 - OpenCV
 - CUDA >= 9.0
-
 
 ### Option 1: Step-by-step installation
 
@@ -67,8 +67,6 @@ unset INSTALL_DIR
 
 
 ```
-
-
 
 ### Option 2: Set the dataset
 

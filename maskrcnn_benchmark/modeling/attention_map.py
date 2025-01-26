@@ -1,7 +1,8 @@
-import torch 
+import torch
 from torch import nn
 import torch.nn.functional as F
 from torchvision.ops import roi_align
+
 
 def generate_attention_map(features):
     """
@@ -38,13 +39,13 @@ def calculate_attention_scores_per_img_roi_align(proposals, attention_map):
     H_fea, W_fea = attention_map.shape[0], attention_map.shape[1]
     proposals_boxes = proposals.bbox
 
-    proposals_boxes[:, 0] = proposals_boxes[:, 0]*W_fea/W_img
-    proposals_boxes[:, 1] = proposals_boxes[:, 1]*H_fea/H_img
-    proposals_boxes[:, 2] = proposals_boxes[:, 2]*W_fea/W_img
-    proposals_boxes[:, 3] = proposals_boxes[:, 3]*H_fea/H_img
+    proposals_boxes[:, 0] = proposals_boxes[:, 0] * W_fea / W_img
+    proposals_boxes[:, 1] = proposals_boxes[:, 1] * H_fea / H_img
+    proposals_boxes[:, 2] = proposals_boxes[:, 2] * W_fea / W_img
+    proposals_boxes[:, 3] = proposals_boxes[:, 3] * H_fea / H_img
 
     # select 7*7 regions to get mean attention scores
-    attention_scores = roi_align(attention_map.unsqueeze(0).unsqueeze(0), [proposals_boxes], [7,7]).mean(3).mean(2)
+    attention_scores = roi_align(attention_map.unsqueeze(0).unsqueeze(0), [proposals_boxes], [7, 7]).mean(3).mean(2)
 
     return attention_scores
 
@@ -56,5 +57,5 @@ def activation_at(f_map, temp=2):
     # Bs*W*H
     fea_map = value.pow(temp).mean(axis=1, keepdim=True)
     attention_maps = (H * W * F.softmax(fea_map.view(N, -1), dim=1)).view(N, H, W)
-    
+
     return attention_maps

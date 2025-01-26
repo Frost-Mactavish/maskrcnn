@@ -4,7 +4,6 @@ from .coco import coco_evaluation
 from .voc import voc_evaluation, voc_evaluation_inst
 
 
-
 def evaluate(dataset, predictions, rpn_predictions, output_folder, **kwargs):
     """evaluate dataset using different methods based on dataset type.
     Args:

@@ -3,7 +3,6 @@ import os
 
 from yacs.config import CfgNode as CN
 
-
 # -----------------------------------------------------------------------------
 # Convention about Training / Test specific parameters
 # -----------------------------------------------------------------------------
@@ -65,7 +64,6 @@ _C.INPUT.CONTRAST = 0.0
 _C.INPUT.SATURATION = 0.0
 _C.INPUT.HUE = 0.0
 
-
 # -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
@@ -88,8 +86,6 @@ _C.DATALOADER.SIZE_DIVISIBILITY = 0
 # is compatible. This groups portrait images together, and landscape images
 # are not batched with portrait images.
 _C.DATALOADER.ASPECT_RATIO_GROUPING = True
-
-
 
 # ---------------------------------------------------------------------------- #
 # Backbone options
@@ -118,7 +114,6 @@ _C.MODEL.FPN = CN()
 _C.MODEL.FPN.USE_GN = False
 _C.MODEL.FPN.USE_RELU = False
 
-
 # ---------------------------------------------------------------------------- #
 # Group Norm options
 # ---------------------------------------------------------------------------- #
@@ -129,7 +124,6 @@ _C.MODEL.GROUP_NORM.DIM_PER_GP = -1
 _C.MODEL.GROUP_NORM.NUM_GROUPS = 32
 # GroupNorm's small constant in the denominator
 _C.MODEL.GROUP_NORM.EPSILON = 1e-5
-
 
 # ---------------------------------------------------------------------------- #
 # RPN options
@@ -188,7 +182,6 @@ _C.MODEL.RPN.CLS_FREEZE = False
 # Whether freeze the RPN bounding box regression layer
 _C.MODEL.RPN.BBS_FREEZE = False
 
-
 # ---------------------------------------------------------------------------- #
 # ROI HEADS options
 # ---------------------------------------------------------------------------- #
@@ -233,7 +226,6 @@ _C.MODEL.ROI_HEADS.NMS = 0.5
 # established for the COCO dataset)
 _C.MODEL.ROI_HEADS.DETECTIONS_PER_IMG = 100
 
-
 _C.MODEL.ROI_BOX_HEAD = CN()
 _C.MODEL.ROI_BOX_HEAD.FEATURE_EXTRACTOR = "ResNet50Conv5ROIFeatureExtractor"
 _C.MODEL.ROI_BOX_HEAD.PREDICTOR = "FastRCNNPredictor"
@@ -254,7 +246,6 @@ _C.MODEL.ROI_BOX_HEAD.USE_GN = False
 _C.MODEL.ROI_BOX_HEAD.DILATION = 1
 _C.MODEL.ROI_BOX_HEAD.CONV_HEAD_DIM = 256
 _C.MODEL.ROI_BOX_HEAD.NUM_STACKED_CONVS = 4
-
 
 _C.MODEL.ROI_MASK_HEAD = CN()
 _C.MODEL.ROI_MASK_HEAD.FEATURE_EXTRACTOR = "ResNet50Conv5ROIFeatureExtractor"
@@ -319,7 +310,6 @@ _C.MODEL.RESNETS.STAGE_WITH_DCN = (False, False, False, False)
 _C.MODEL.RESNETS.WITH_MODULATED_DCN = False
 _C.MODEL.RESNETS.DEFORMABLE_GROUPS = 1
 
-
 # ---------------------------------------------------------------------------- #
 # RetinaNet Options (Follow the Detectron version)
 # ---------------------------------------------------------------------------- #
@@ -380,7 +370,6 @@ _C.MODEL.RETINANET.INFERENCE_TH = 0.05
 # NMS threshold used in RetinaNet
 _C.MODEL.RETINANET.NMS_TH = 0.4
 
-
 # ---------------------------------------------------------------------------- #
 # FBNet options
 # ---------------------------------------------------------------------------- #
@@ -416,7 +405,6 @@ _C.MODEL.FBNET.MASK_HEAD_STRIDE = 0
 # 0 to use all blocks defined in arch_def
 _C.MODEL.FBNET.RPN_HEAD_BLOCKS = 0
 _C.MODEL.FBNET.RPN_BN_TYPE = ""
-
 
 # ---------------------------------------------------------------------------- #
 # Solver
@@ -461,7 +449,6 @@ _C.TEST.DETECTIONS_PER_IMG = 100
 # The sequence for loading COCO categories
 _C.TEST.COCO_ALPHABETICAL_ORDER = False
 
-
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
@@ -492,10 +479,7 @@ _C.DIST.GAMMA = 0.
 _C.DTYPE = "float32"
 _C.CLS_PER_STEP = -1
 
-# Enable verbosity in apex.amp
 _C.AMP_VERBOSE = False
-
-
 
 # ---------------------------------------------------------------------------- #
 # PSEUDO LABELS
@@ -533,7 +517,9 @@ _C.PSEUDO_LABELS.SUPERVISION = False
 # ---------------------------------------------------------------------------- #
 _C.FROZEN = CN()
 _C.FROZEN.ENABLE = False
-_C.FROZEN.LAYERS = ("backbone.body.stem.conv1.weight","backbone.body.layer1.0.downsample.0.weight","backbone.body.layer1.0.conv1.weight","backbone.body.layer1.0.conv2.weight","backbone.body.layer1.0.conv3.weigh",)
+_C.FROZEN.LAYERS = (
+"backbone.body.stem.conv1.weight", "backbone.body.layer1.0.downsample.0.weight", "backbone.body.layer1.0.conv1.weight",
+"backbone.body.layer1.0.conv2.weight", "backbone.body.layer1.0.conv3.weigh",)
 
 # ---------------------------------------------------------------------------- #
 # UNK
@@ -545,7 +531,6 @@ _C.UNK.OBJ_TOPK = 0.1
 _C.UNK.IOU_GT = 0.05
 _C.UNK.IOU_PROPOSAL = 1.0
 _C.UNK.ATTENTION_RATIO = 1.0
-
 
 # ---------------------------------------------------------------------------- #
 # FINETUNE

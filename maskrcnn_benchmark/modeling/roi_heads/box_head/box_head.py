@@ -1,13 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-import torch.nn.functional as F
-from torch import nn
-from .roi_box_feature_extractors import make_roi_box_feature_extractor
-from .roi_box_predictors import make_roi_box_predictor
+
+from maskrcnn_benchmark.structures.bounding_box import BoxList
 from .inference import make_roi_box_post_processor
 from .loss import make_roi_box_loss_evaluator
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.modeling.pseudo_labels import filter_pseudo_boxes_with_iou, merge_targes, merge_pseudo_labels
+from .roi_box_feature_extractors import make_roi_box_feature_extractor
+from .roi_box_predictors import make_roi_box_predictor
+
+
 # from maskrcnn_benchmark.modeling.attention_map import generate_attention_map
 
 
@@ -26,6 +26,7 @@ class ROIBoxHead(torch.nn.Module):
         self.pseudo_sup = cfg.PSEUDO_LABELS.SUPERVISION
         self.num_old_classes = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         self.cfg = cfg
+
     def forward(self, features, proposals, targets=None, attention_maps=None):
         """
         Arguments:
@@ -47,7 +48,7 @@ class ROIBoxHead(torch.nn.Module):
                     proposals = self.loss_evaluator.subsample(proposals, targets, attention_maps=attention_maps)
                 else:
                     proposals = self.loss_evaluator.subsample(proposals, targets)
-                
+
         # extract features that will be fed to the final classifier. The
         # feature_extractor generally corresponds to the pooler + heads
         x, _ = self.feature_extractor(features, proposals)
@@ -60,10 +61,10 @@ class ROIBoxHead(torch.nn.Module):
             return x, result, results_background
 
         loss_classifier, loss_box_reg = self.loss_evaluator([class_logits], [box_regression])
-         
+
         loss_dict = dict(loss_classifier=loss_classifier, loss_box_reg=loss_box_reg)
-        
-        #return x, proposals, (class_logits, box_regression.view([-1, class_logits.size()[1], 4])), loss_dict, roi_align_features
+
+        # return x, proposals, (class_logits, box_regression.view([-1, class_logits.size()[1], 4])), loss_dict, roi_align_features
         return proposals, loss_dict
 
     def calculate_soften_label(self, features, proposals, targets=None):
@@ -94,14 +95,15 @@ class ROIBoxHead(torch.nn.Module):
         # print('box_head.py | box_regression size: {0}'.format(box_regression.size()))
         return class_logits
 
-    def get_pseudo_labels(self,features,proposals):
+    def get_pseudo_labels(self, features, proposals):
         x, roi_align_features = self.feature_extractor(features, proposals)
 
         # final classifier that converts the features into predictions
         class_logits, box_regression = self.predictor(x)
 
-        result, results_background = self.post_processor((class_logits, box_regression), proposals, score_thres=0.75, nms_thres=0.3)
-        
+        result, results_background = self.post_processor((class_logits, box_regression), proposals, score_thres=0.75,
+                                                         nms_thres=0.3)
+
         return x, result, results_background
 
 

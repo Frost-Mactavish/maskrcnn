@@ -2,9 +2,9 @@
 import torch
 
 from .box_head.box_head import build_roi_box_head
-from .mask_head.mask_head import build_roi_mask_head
 from .keypoint_head.keypoint_head import build_roi_keypoint_head
-import pdb
+from .mask_head.mask_head import build_roi_mask_head
+
 
 class CombinedROIHeads(torch.nn.ModuleDict):
     """
@@ -20,7 +20,7 @@ class CombinedROIHeads(torch.nn.ModuleDict):
         if cfg.MODEL.KEYPOINT_ON and cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR:
             self.keypoint.feature_extractor = self.box.feature_extractor
 
-    def forward(self, features, proposals, targets=None, pseudo_targets = None, attention_maps=None):
+    def forward(self, features, proposals, targets=None, pseudo_targets=None, attention_maps=None):
         losses = {}
         if self.training:
             detections, loss_box = self.box(features, proposals, targets, attention_maps=attention_maps)
@@ -34,8 +34,8 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             # optimization: during training, if we share the feature extractor between
             # the box and the mask heads, then we can reuse the features already computed
             if (
-                self.training
-                and self.cfg.MODEL.ROI_MASK_HEAD.SHARE_BOX_FEATURE_EXTRACTOR
+                    self.training
+                    and self.cfg.MODEL.ROI_MASK_HEAD.SHARE_BOX_FEATURE_EXTRACTOR
             ):
                 mask_features = x
             # During training, self.box() will return the unaltered proposals as "detections"
@@ -48,8 +48,8 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             # optimization: during training, if we share the feature extractor between
             # the box and the mask heads, then we can reuse the features already computed
             if (
-                self.training
-                and self.cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR
+                    self.training
+                    and self.cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR
             ):
                 keypoint_features = x
             # During training, self.box() will return the unaltered proposals as "detections"
@@ -59,11 +59,13 @@ class CombinedROIHeads(torch.nn.ModuleDict):
         if not self.training:
             return x, detections, results_background
         else:
-            #return x, detections, soft_res, losses, roi_align_features
+            # return x, detections, soft_res, losses, roi_align_features
             return detections, losses
 
     def calculate_soften_label(self, features, proposals, targets=None):
-        soften_score, soften_bbox, proposal_features, roi_align_features = self.box.calculate_soften_label(features, proposals, targets)
+        soften_score, soften_bbox, proposal_features, roi_align_features = self.box.calculate_soften_label(features,
+                                                                                                           proposals,
+                                                                                                           targets)
         if self.cfg.MODEL.MASK_ON:
             mask_logits = self.mask.calculate_soften_label(proposal_features)
         else:
@@ -79,6 +81,7 @@ class CombinedROIHeads(torch.nn.ModuleDict):
     def get_pseudo_labels(self, features, proposals):
         x, detections, results_background = self.box.get_pseudo_labels(features, proposals)
         return x, detections, results_background, []
+
 
 def build_roi_heads(cfg, in_channels):
     # individually create the heads, that will be combined together

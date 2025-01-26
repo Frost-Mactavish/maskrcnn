@@ -1,8 +1,8 @@
 import os
+
 import cv2
-import pdb
-from PIL import Image
 import numpy as np
+from PIL import Image
 
 CATEGORIES = [
     "__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle",
@@ -16,7 +16,8 @@ COLORS = [(np.random.randint(255), np.random.randint(255), np.random.randint(254
 # red color (ground truth targets)
 RED_COLOR = (0, 0, 255)
 GREEN_COLOR = (0, 255, 0)
-BLUE_COLOR = (255,0,0)
+BLUE_COLOR = (255, 0, 0)
+
 
 def draw_image_target(img_id, input_targets):
     imgpath = os.path.join("data/voc07/VOCdevkit/VOC2007", "JPEGImages", "%s.jpg")
@@ -40,8 +41,8 @@ def draw_image_target(img_id, input_targets):
 
     cv2.imwrite(output_image_path, img)
 
+
 def draw_singe_image(img_id, input_targets, del_proposals, add_proposals=None):
-    
     imgpath = os.path.join("data/voc07/VOCdevkit/VOC2007", "JPEGImages", "%s.jpg")
 
     per_img_path = imgpath % img_id
@@ -77,12 +78,12 @@ def draw_singe_image(img_id, input_targets, del_proposals, add_proposals=None):
 
     cv2.imwrite(output_image_path, img)
 
+
 def Draw_singe_image(img_id, input_images, input_targets, del_proposals, round):
-    
     input_images = input_images.cpu().numpy().transpose(1, 2, 0)
-    
-    #output_ini_image_path = "/home/qijie/workspace/visual/ini/%s.jpg" % img_id
-    #cv2.imwrite(output_ini_image_path, input_images)
+
+    # output_ini_image_path = "/home/qijie/workspace/visual/ini/%s.jpg" % img_id
+    # cv2.imwrite(output_ini_image_path, input_images)
     # 将图像数据转换到0-255，并转换为uint8
     # input_images = np.clip(input_images, 0, 1)
     # input_images = (input_images * 255).astype(np.uint8)

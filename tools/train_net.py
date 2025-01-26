@@ -3,54 +3,39 @@ r"""
 Basic training script for PyTorch
 """
 
-# Set up custom environment before nearly anything else is imported
-# NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
-import os
 import datetime
 import logging
+import os
 import time
-import torch
-import torch.distributed as dist
-import numpy as np
-import cv2
-from PIL import Image
-import torch
-import scipy.io as scio
+import warnings
 
 import torch
+import torch.distributed as dist
+from torch.utils.tensorboard import SummaryWriter
+
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
-from maskrcnn_benchmark.solver import make_lr_scheduler
-from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.engine.inference import inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
 from maskrcnn_benchmark.modeling.detector import build_detection_model
+from maskrcnn_benchmark.solver import make_lr_scheduler
+from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank
-from maskrcnn_benchmark.utils.imports import import_file
+# Set up custom environment before nearly anything else is imported
+# NOTE: this should be the first import (no not reorder)
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from torch.utils.tensorboard import SummaryWriter
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
-import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
 
-
-def do_train(model, data_loader, optimizer, scheduler, checkpointer, device, checkpoint_period, arguments, summary_writer):
-
+def do_train(model, data_loader, optimizer, scheduler, checkpointer, device, checkpoint_period, arguments,
+             summary_writer):
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
@@ -84,8 +69,7 @@ def do_train(model, data_loader, optimizer, scheduler, checkpointer, device, che
 
         optimizer.zero_grad()
         # Note: If mixed precision is not used, this ends up doing nothing. Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
+        losses.backward()
         optimizer.step()
 
         batch_time = time.time() - end
@@ -133,14 +117,9 @@ def train(cfg, local_rank, distributed):
     optimizer = make_optimizer(cfg, model)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
-    # Initialize mixed-precision training
-    use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
-
     if distributed:
-        model = torch.nn.parallel.DistributedDataParallel( model, device_ids=[local_rank], output_device=local_rank,
-                                                           broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank,
+                                                          broadcast_buffers=False)
     arguments = {}
     arguments["iteration"] = 0
 
@@ -157,7 +136,8 @@ def train(cfg, local_rank, distributed):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
-    do_train(model, data_loader, optimizer, scheduler, checkpointer, device, checkpoint_period, arguments, summary_writer)
+    do_train(model, data_loader, optimizer, scheduler, checkpointer, device, checkpoint_period, arguments,
+             summary_writer)
 
     return model
 

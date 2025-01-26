@@ -4,14 +4,15 @@ import torch.nn.functional as F
 from torch import nn
 
 from maskrcnn_benchmark.modeling import registry
+from maskrcnn_benchmark.modeling.attention_map import add_attention_scores
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
+from maskrcnn_benchmark.modeling.pseudo_labels import rpn_merge_targets
 from maskrcnn_benchmark.modeling.rpn.retinanet.retinanet import build_retinanet
-from .loss import make_rpn_loss_evaluator
+from maskrcnn_benchmark.modeling.select_unk import select_unk_idxes
 from .anchor_generator import make_anchor_generator
 from .inference import make_rpn_postprocessor
-from maskrcnn_benchmark.modeling.attention_map import generate_attention_map, add_attention_scores
-from maskrcnn_benchmark.modeling.select_unk import select_unk_idxes
-from maskrcnn_benchmark.modeling.pseudo_labels import rpn_merge_targets
+from .loss import make_rpn_loss_evaluator
+
 
 class RPNHeadConvRegressor(nn.Module):
     """
@@ -181,13 +182,17 @@ class RPNModule(torch.nn.Module):
 
         if self.training:
             if self.cfg.UNK.ENABLE:
-                return self._forward_train(anchors, objectness, rpn_box_regression, targets, rpn_output_source, attention_maps=attention_maps), anchors, rpn_output
+                return self._forward_train(anchors, objectness, rpn_box_regression, targets, rpn_output_source,
+                                           attention_maps=attention_maps), anchors, rpn_output
             else:
-                return self._forward_train(anchors, objectness, rpn_box_regression, targets, rpn_output_source), anchors, rpn_output
+                return self._forward_train(anchors, objectness, rpn_box_regression, targets,
+                                           rpn_output_source), anchors, rpn_output
         else:
-            return self._forward_test(anchors, objectness, rpn_box_regression, attention_maps=attention_maps), anchors, rpn_output
+            return self._forward_test(anchors, objectness, rpn_box_regression,
+                                      attention_maps=attention_maps), anchors, rpn_output
 
-    def _forward_train(self, anchors, objectness, rpn_box_regression, targets, rpn_output_source=None, attention_maps=None):
+    def _forward_train(self, anchors, objectness, rpn_box_regression, targets, rpn_output_source=None,
+                       attention_maps=None):
         if self.cfg.MODEL.RPN_ONLY:
             # When training an RPN-only model, the loss is determined by the
             # predicted objectness and rpn_box_regression values and there is
@@ -203,14 +208,16 @@ class RPNModule(torch.nn.Module):
                 if self.cfg.UNK.ENABLE:
                     boxes = add_attention_scores(boxes, attention_maps)
                     unk_idxes = select_unk_idxes(boxes, targets)
-                    rpn_pse_targets = [box[unk_idx] for box,unk_idx in zip(boxes,unk_idxes)]
+                    rpn_pse_targets = [box[unk_idx] for box, unk_idx in zip(boxes, unk_idxes)]
                     rpn_targets = rpn_merge_targets(targets, rpn_pse_targets)
                 ################################
-                
+
         if self.cfg.UNK.ENABLE:
-            loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression, rpn_targets, rpn_output_source)
+            loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression,
+                                                                    rpn_targets, rpn_output_source)
         else:
-            loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression, targets, rpn_output_source)
+            loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression, targets,
+                                                                    rpn_output_source)
         losses = {
             "loss_objectness": loss_objectness,
             "loss_rpn_box_reg": loss_rpn_box_reg,
@@ -219,13 +226,13 @@ class RPNModule(torch.nn.Module):
 
     def _forward_test(self, anchors, objectness, rpn_box_regression, attention_maps=None):
         boxes = self.box_selector_test(anchors, objectness, rpn_box_regression)
-        
+
         ##########################TO CALCULATE RECALL   #############################
         # boxes = self.box_selector_train(anchors, objectness, rpn_box_regression)
         # if self.cfg.UNK.ENABLE and attention_maps is not None:
         #     boxes = add_attention_scores(boxes, attention_maps)
         ##################################################################################
-        
+
         if self.cfg.MODEL.RPN_ONLY:
             # For end-to-end models, the RPN proposals are an intermediate state
             # and don't bother to sort them in decreasing score order. For RPN-only
@@ -249,7 +256,7 @@ def build_rpn(cfg, in_channels):
     """
 
     print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
-    
+
     if cfg.MODEL.RETINANET_ON:
         return build_retinanet(cfg, in_channels)
 
