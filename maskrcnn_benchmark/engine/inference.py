@@ -1,20 +1,17 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
-import time
 import os
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
-from maskrcnn_benchmark.data import datasets
 from maskrcnn_benchmark.data.datasets.evaluation import evaluate
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from ..structures.segmentation_mask import SegmentationMask
 from ..utils.comm import is_main_process, get_world_size
-from ..utils.comm import all_gather
-from ..utils.comm import synchronize
 from ..utils.timer import Timer, get_time_str
-import numpy as np
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+
 
 def bb_intersection_over_union(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
@@ -40,10 +37,12 @@ def bb_intersection_over_union(boxA, boxB):
     # return the intersection over union value
     return iou
 
+
 def compute_on_dataset(model, data_loader, device, timer=None, external_proposal=False, summary_writer=None):
-    NAME_CLASSES = np.array(["#bkg","aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-                    "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
-                       "tvmonitor"])
+    NAME_CLASSES = np.array(
+        ["#bkg", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+         "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+         "tvmonitor"])
     model.eval()
     conf_matrix = torch.zeros((len(NAME_CLASSES), len(NAME_CLASSES)))
     # BACK_CONF_THRESHOLD = 0.3
@@ -76,7 +75,8 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
                     masks = masks.squeeze(dim=1)
                     if masks.shape[0] > 0 and masks.max() < 0.01:
                         print(f"Warning: Masks of {img_id} have max < 0.01!")
-                    output[0].extra_fields['mask'] = SegmentationMask(masks, (masks.shape[2], masks.shape[1]), mode='mask')
+                    output[0].extra_fields['mask'] = SegmentationMask(masks, (masks.shape[2], masks.shape[1]),
+                                                                      mode='mask')
             if timer:
                 torch.cuda.synchronize()
                 timer.toc()
@@ -99,6 +99,7 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     # with open("conf_matrix_FILOD_UCE_UKDx10_15_15.txt", "w") as f:
     #     print(conf_matrix, file=f)
     return results_dict, results_background_dict
+
 
 def test_background_fall(dataset, idx, results, results_background, n_classes):
     add_matrix = torch.zeros((n_classes, n_classes))
@@ -156,9 +157,8 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
 
 
 def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=False, device="cuda",
-        expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
+              expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
               alphabetical_order=True, summary_writer=None, save_predictions=False):
-
     # ONLY SUPPORTED ON SINGLE GPU!
     print('inference.py | alphabetical_order: {0}'.format(alphabetical_order))
     # convert to a torch.device for efficiency
@@ -170,7 +170,8 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions, back_predictions = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal, summary_writer)
+    predictions, back_predictions = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal,
+                                                       summary_writer)
 
     # wait for all processes to complete before measuring the time
     # synchronize()

@@ -2,13 +2,15 @@
 # (See https://github.com/chainer/chainercv/blob/master/chainercv/evaluations/eval_detection_voc.py)
 from __future__ import division
 
-import torch
 import os
 from collections import defaultdict
+
 import numpy as np
+import torch
+from tqdm import tqdm
+
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from tqdm import tqdm
 
 
 def do_voc_evaluation_inst(dataset, predictions, output_folder, logger):
@@ -44,11 +46,11 @@ def do_voc_evaluation_inst(dataset, predictions, output_folder, logger):
 
     for i, ap in enumerate(ap_05_95_box):
         result_str_box += "{:<16}: {:.4f}\n".format(
-            dataset.map_class_id_to_class_name(i+1), ap
+            dataset.map_class_id_to_class_name(i + 1), ap
         )
     for i, ap in enumerate(ap_05_95_mask):
         result_str_mask += "{:<16}: {:.4f}\n".format(
-            dataset.map_class_id_to_class_name(i+1), ap
+            dataset.map_class_id_to_class_name(i + 1), ap
         )
     print("BOX", end=": ")
     print(",".join([str(x) for x in ap_05_95_box]))
@@ -86,6 +88,7 @@ def eval_detection_voc(pred_boxlists, gt_boxlists, iou_thresh=0.5, use_07_metric
     ap_mask = calc_detection_voc_ap(mask_prec, mask_rec, use_07_metric=use_07_metric)
     return {"ap_box": ap_box, "ap_mask": ap_mask, "map_box": np.nanmean(ap_box), "map_mask": np.nanmean(ap_mask)}
 
+
 def masklist_iou(mask_target, mask_predicted):
     n_gt_masks = mask_target.shape[0]
     n_pred_masks = mask_predicted.shape[0]
@@ -97,12 +100,13 @@ def masklist_iou(mask_target, mask_predicted):
             tp_px = ((mask_target[t] - mask_predicted[p])[mask_target[t] == 1] == 0).nonzero().size(0)
             fp_px = ((mask_target[t] - mask_predicted[p])[mask_target[t] == 0] == -1).nonzero().size(0)
             fn_px = ((mask_target[t] - mask_predicted[p])[mask_target[t] == 1] == 1).nonzero().size(0)
-            if (tp_px+fp_px+fn_px) == 0:
+            if (tp_px + fp_px + fn_px) == 0:
                 ious[p][t] = 0.0
                 break
-            IoU = tp_px/(tp_px+fp_px+fn_px)
+            IoU = tp_px / (tp_px + fp_px + fn_px)
             ious[p][t] = IoU
     return ious
+
 
 def calc_detection_voc_prec_rec(gt_boxlists, pred_boxlists, iou_thresh=0.5):
     """Calculate precision and recall based on evaluation code of PASCAL VOC.
@@ -212,7 +216,6 @@ def calc_detection_voc_prec_rec(gt_boxlists, pred_boxlists, iou_thresh=0.5):
         if n_pos[l] > 0:
             rec[l] = tp / n_pos[l]
             mask_rec[l] = mask_tp / n_pos[l]
-
 
     return prec, rec, mask_prec, mask_rec
 

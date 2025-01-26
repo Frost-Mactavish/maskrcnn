@@ -2,10 +2,9 @@
 import torch
 from torch.nn import functional as F
 
-from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.modeling.utils import cat
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
 
 def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
@@ -29,7 +28,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     )
 
     # FIXME: CPU computation bottleneck, this should be parallelized
-    proposals = proposals.bbox  #.to(torch.device("cpu"))
+    proposals = proposals.bbox  # .to(torch.device("cpu"))
     for segmentation_mask, proposal in zip(segmentation_masks, proposals):
         # crop the masks, resize them to the desired resolution and
         # then convert them to the tensor representation.

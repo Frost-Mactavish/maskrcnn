@@ -120,7 +120,7 @@ class BoxList(object):
         bbox = BoxList(scaled_box, size, mode="xyxy")
         # bbox._copy_extra_fields(self)
         for k, v in self.extra_fields.items():
-            if not isinstance(v, torch.Tensor): # and len(v) > 0:
+            if not isinstance(v, torch.Tensor):  # and len(v) > 0:
                 v = v.resize(size, *args, **kwargs, refcheck=False)
             bbox.add_field(k, v)
 

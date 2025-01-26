@@ -134,7 +134,6 @@ MODEL_ARCH = {
     },
 }
 
-
 MODEL_ARCH_CHAM = {
     "cham_v1a": {
         "block_op_type": [

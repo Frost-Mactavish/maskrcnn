@@ -11,10 +11,10 @@ MODEL:
     POST_NMS_TOP_N_TEST: 1000
   ROI_BOX_HEAD:
     NUM_CLASSES: 11
-    NAME_OLD_CLASSES: [ "aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow"]
+    NAME_OLD_CLASSES: [ "aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow" ]
     NAME_NEW_CLASSES: [ "diningtable", "dog",
                         "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor" ]
-    NAME_EXCLUDED_CLASSES: []
+    NAME_EXCLUDED_CLASSES: [ ]
   MASK_ON: True
   ROI_MASK_HEAD:
     PREDICTOR: "MaskRCNNC4Predictor"

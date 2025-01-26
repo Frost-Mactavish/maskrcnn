@@ -1,15 +1,12 @@
-import cv2
 import copy
-import torch
-import numpy as np
-from maskrcnn_benchmark.layers.misc import interpolate
 
+import cv2
 import pycocotools.mask as mask_utils
+import torch
 
 # transpose
 FLIP_LEFT_RIGHT = 0
 FLIP_TOP_BOTTOM = 1
-
 
 """ ABSTRACT
 Segmentations come in either:
@@ -443,7 +440,6 @@ class PolygonList(object):
 
 
 class SegmentationMask(object):
-
     """
     This class stores the segmentations for all objects in the image.
     It wraps BinaryMaskList and PolygonList conveniently.

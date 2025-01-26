@@ -17,10 +17,10 @@ MODEL:
     USE_FPN: False
   ROI_BOX_HEAD:
     NUM_CLASSES: 11
-    NAME_OLD_CLASSES: []
-    NAME_NEW_CLASSES: ["aeroplane", "bicycle", "bird","boat", "bottle",
-                       "bus", "car", "cat", "chair", "cow",]
-    NAME_EXCLUDED_CLASSES: ["diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    NAME_OLD_CLASSES: [ ]
+    NAME_NEW_CLASSES: [ "aeroplane", "bicycle", "bird","boat", "bottle",
+                        "bus", "car", "cat", "chair", "cow", ]
+    NAME_EXCLUDED_CLASSES: [ "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor" ]
   MASK_ON: True
   ROI_MASK_HEAD:
     PREDICTOR: "MaskRCNNC4Predictor"

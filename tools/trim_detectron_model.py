@@ -1,8 +1,7 @@
-import os
-import torch
 import argparse
-from maskrcnn_benchmark.utils.c2_model_loading import load_c2_format
+import os
 
+import torch
 
 parser = argparse.ArgumentParser(description="Trim Detection weights and save in PyTorch format.")
 parser.add_argument(
@@ -17,7 +16,6 @@ parser.add_argument(
     action='store_true',
 )
 args = parser.parse_args()
-
 
 base_dir = 'mask_out' if args.instance else "output"
 

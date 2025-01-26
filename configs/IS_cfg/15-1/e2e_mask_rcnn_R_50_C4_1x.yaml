@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-#  WEIGHT: "output/mask_JT_36Kiter_LR005_BS4/model_final.pth"
+  #  WEIGHT: "output/mask_JT_36Kiter_LR005_BS4/model_final.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"
   RESNETS:
@@ -18,10 +18,10 @@ MODEL:
     USE_FPN: False
   ROI_BOX_HEAD:
     NUM_CLASSES: 16
-    NAME_OLD_CLASSES: []
-    NAME_NEW_CLASSES: ["aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow",
-     "diningtable", "dog", "horse", "motorbike", "person"]
-    NAME_EXCLUDED_CLASSES: ["pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    NAME_OLD_CLASSES: [ ]
+    NAME_NEW_CLASSES: [ "aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow",
+                        "diningtable", "dog", "horse", "motorbike", "person" ]
+    NAME_EXCLUDED_CLASSES: [ "pottedplant", "sheep", "sofa", "train", "tvmonitor" ]
   MASK_ON: True
   ROI_MASK_HEAD:
     PREDICTOR: "MaskRCNNC4Predictor"

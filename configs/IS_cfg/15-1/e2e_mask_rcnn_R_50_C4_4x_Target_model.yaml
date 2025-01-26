@@ -13,7 +13,7 @@ MODEL:
   ROI_BOX_HEAD:
     NUM_CLASSES: 21
     NAME_OLD_CLASSES: [ "aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
-                        "horse", "motorbike", "person",]
+                        "horse", "motorbike", "person", ]
     NAME_NEW_CLASSES: [ "pottedplant", "sheep", "sofa", "train", "tvmonitor" ]
     NAME_EXCLUDED_CLASSES: [ ]
   MASK_ON: True

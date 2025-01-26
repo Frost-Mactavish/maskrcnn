@@ -1,12 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-import torch.nn.functional as F
-from torch import nn
 
-from .roi_box_feature_extractors import make_roi_box_feature_extractor
-from .roi_box_predictors import make_roi_box_predictor
 from .inference import make_roi_box_post_processor
 from .loss import make_roi_box_loss_evaluator
+from .roi_box_feature_extractors import make_roi_box_feature_extractor
+from .roi_box_predictors import make_roi_box_predictor
 
 
 class ROIBoxHead(torch.nn.Module):
@@ -55,7 +53,7 @@ class ROIBoxHead(torch.nn.Module):
         loss_classifier, loss_box_reg = self.loss_evaluator([class_logits], [box_regression])
 
         return x, proposals, (class_logits, box_regression.view([-1, class_logits.size()[1], 4])), \
-               dict(loss_classifier=loss_classifier, loss_box_reg=loss_box_reg), roi_align_features
+            dict(loss_classifier=loss_classifier, loss_box_reg=loss_box_reg), roi_align_features
 
     def calculate_soften_label(self, features, proposals, targets=None):
         # Extract features that will be fed to the final classifier.

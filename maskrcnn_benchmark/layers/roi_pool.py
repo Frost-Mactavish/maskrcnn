@@ -1,5 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-import torch
+from apex import amp
 from torch import nn
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
@@ -7,7 +7,6 @@ from torch.nn.modules.utils import _pair
 
 from maskrcnn_benchmark import _C
 
-from apex import amp
 
 class _ROIPool(Function):
     @staticmethod

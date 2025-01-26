@@ -1,44 +1,40 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
-import os
 import datetime
 import logging
+import os
+import random
 import time
+
+import numpy as np
 import torch
 import torch.distributed as dist
-from torch import nn
-import numpy as np
-import cv2
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from PIL import Image
 
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import data set
+from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
+from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
+from maskrcnn_benchmark.distillation.distillation import calculate_roi_align_distillation, \
+    calculate_mask_distillation_losses
+from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
+from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
 from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
 from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.collect_env import collect_env_info
+from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.comm import synchronize, \
     get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_align_distillation, calculate_mask_distillation_losses
-import random
+from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -58,7 +54,8 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(
+        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  #
     print(start_iter)
     model_target.train()  # set the target model in training mode
@@ -97,12 +94,14 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
                                                                                             proposals=soften_proposal)
 
         if cfg.DIST.CLS > 0:
-            distillation_losses = cfg.DIST.CLS * calculate_roi_distillation_losses(soften_result, target_result, dist=dist_type)
+            distillation_losses = cfg.DIST.CLS * calculate_roi_distillation_losses(soften_result, target_result,
+                                                                                   dist=dist_type)
         else:
             distillation_losses = torch.tensor(0.).to(device)
 
         if cfg.MODEL.MASK_ON and cfg.DIST.MASK > 0:
-            distillation_losses += cfg.DIST.MASK * calculate_mask_distillation_losses(soften_mask_logits, target_mask_logits)
+            distillation_losses += cfg.DIST.MASK * calculate_mask_distillation_losses(soften_mask_logits,
+                                                                                      target_mask_logits)
 
         if cfg.DIST.RPN:
             rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target,
@@ -323,6 +322,7 @@ def test(cfg):
                 fid.write(",".join([str(x) for x in result['box']]))
                 fid.write("\n")
 
+
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
 
@@ -472,7 +472,7 @@ def main():
         cfg_target.DIST.CLS = args.cls
     else:
         cfg_target.DIST.CLS = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) / \
-                                                          cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
+                              cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
     cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.INIT = args.init
     cfg_target.OUTPUT_DIR += args.task + "/" + full_name

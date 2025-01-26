@@ -1,8 +1,8 @@
-import socket
 import random
+import socket
 
 
-def next_free_port( port=1994, max_port=65535):
+def next_free_port(port=1994, max_port=65535):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     while port <= max_port:
         try:
@@ -14,7 +14,7 @@ def next_free_port( port=1994, max_port=65535):
     raise IOError('no free ports')
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     start_port = random.choice(list(range(1994, 2994)))
     port = next_free_port(port=start_port)
     print(port)

@@ -1,26 +1,26 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
 import os
 
-import timeit
 import torch
-from maskrcnn_benchmark.config import cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
+from torch.utils.tensorboard import SummaryWriter
+
+from maskrcnn_benchmark.config import \
+    cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import dataset
-from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
-from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import do_train  # main logic of model training
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
+from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
+from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import synchronize, get_rank, get_world_size  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.comm import synchronize, get_rank, \
+    get_world_size  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from torch.utils.tensorboard import SummaryWriter
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -28,6 +28,7 @@ try:
     from apex import amp
 except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
+
 
 def train(cfg, local_rank, distributed):
     # this command called ./maskrcnn_benchmark/modeling/detector/build_detection_model() function
@@ -155,7 +156,7 @@ def main():
     parser.add_argument(
         "-c", "--config_file",
         default="../configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
-        metavar="FILE", 
+        metavar="FILE",
         help="path to config file",
         type=str,
     )
@@ -218,6 +219,6 @@ def main():
         # start to test the trained model
         run_test(cfg)
 
+
 if __name__ == "__main__":
     main()
-

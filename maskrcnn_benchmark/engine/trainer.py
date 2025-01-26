@@ -5,12 +5,11 @@ import time
 
 import torch
 import torch.distributed as dist
+from apex import amp
 
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
-from apex import amp
-from tqdm import tqdm
 
 def reduce_loss_dict(loss_dict):
     """
@@ -38,15 +37,15 @@ def reduce_loss_dict(loss_dict):
 
 
 def do_train(
-    model,  # model object created by build_detection_model() function
-    data_loader,  # dataset
-    optimizer,  # object for torch.optim.sgd.SGD
-    scheduler,  # learning rate updating strategy
-    checkpointer,
-    device,  # torch.device: used to decide hardware training device
-    checkpoint_period,  # model weight saving period
-    arguments,  # extra parameters, e.g. arguments[iteration]
-    summary_writer=None
+        model,  # model object created by build_detection_model() function
+        data_loader,  # dataset
+        optimizer,  # object for torch.optim.sgd.SGD
+        scheduler,  # learning rate updating strategy
+        checkpointer,
+        device,  # torch.device: used to decide hardware training device
+        checkpoint_period,  # model weight saving period
+        arguments,  # extra parameters, e.g. arguments[iteration]
+        summary_writer=None
 ):
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
