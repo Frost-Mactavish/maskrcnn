@@ -5,7 +5,6 @@ import time
 
 import torch
 import torch.distributed as dist
-from apex import amp
 
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
@@ -89,8 +88,7 @@ def do_train(
         optimizer.zero_grad()
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
+        losses.backward()
         optimizer.step()
         scheduler.step()
 

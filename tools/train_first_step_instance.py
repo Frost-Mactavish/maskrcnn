@@ -23,13 +23,6 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
-
 
 def train(cfg, local_rank, distributed):
     # this command called ./maskrcnn_benchmark/modeling/detector/build_detection_model() function
@@ -48,11 +41,6 @@ def train(cfg, local_rank, distributed):
 
     # according to configuration within yaml file sets the learning rate updating strategy
     scheduler = make_lr_scheduler(cfg, optimizer)
-
-    # Initialize mixed-precision training
-    use_mixed_precision = cfg.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
 
     # if multiple gpus are used, parallel processing data
     if distributed:

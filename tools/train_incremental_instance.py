@@ -36,13 +36,6 @@ from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging m
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
-
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -135,8 +128,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         optimizer.zero_grad()  # clear the gradient cache
         # If mixed precision is not used, this ends up doing nothing, otherwise apply loss scaling for mixed-precision recipe.
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()  # use back-propagation to update the gradient
+        losses.backward()  # use back-propagation to update the gradient
         optimizer.step()  # update learning rate
 
         # time used to do one batch processing
@@ -195,10 +187,6 @@ def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_ra
     model_source.to(device)  # move source model to gpu
     optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
     scheduler = make_lr_scheduler(cfg_target, optimizer)  # config learning rate
-    # initialize mixed-precision training
-    use_mixed_precision = cfg_target.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model_target, optimizer = amp.initialize(model_target, optimizer, opt_level=amp_opt_level)
     # create a parameter dictionary and initialize the iteration number to 0
     arguments_target = {}
     arguments_target["iteration"] = 0

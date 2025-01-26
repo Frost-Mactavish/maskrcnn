@@ -475,5 +475,4 @@ _C.DIST.CLS = 0.
 _C.DTYPE = "float32"
 _C.CLS_PER_STEP = -1
 
-# Enable verbosity in apex.amp
 _C.AMP_VERBOSE = False
