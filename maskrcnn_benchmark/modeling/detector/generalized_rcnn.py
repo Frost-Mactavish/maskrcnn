@@ -3,19 +3,19 @@
 Implements the Generalized R-CNN framework
 """
 
+import random
+
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
-import random
-import numpy as np
-
-from maskrcnn_benchmark.structures.image_list import to_image_list
-from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.layers import smooth_l1_loss
+from maskrcnn_benchmark.structures.bounding_box import BoxList
+from maskrcnn_benchmark.structures.image_list import to_image_list
+from torch import nn
 
 from ..backbone import build_backbone
-from ..rpn.rpn import build_rpn
 from ..roi_heads.roi_heads import build_roi_heads
+from ..rpn.rpn import build_rpn
 from ..rpn.utils import permute_and_flatten
 
 
@@ -64,7 +64,8 @@ class GeneralizedRCNN(nn.Module):
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
         if features is not None and proposals is not None:
-            target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features, proposals)
+            target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(
+                features, proposals)
             return (target_scores, target_bboxes), mask_logits, roi_align_features
         else:
             images = to_image_list(images)
@@ -75,7 +76,8 @@ class GeneralizedRCNN(nn.Module):
 
             if self.roi_heads:
                 if self.training:
-                    x, result, soften_results, detector_losses, roi_align_features = self.roi_heads(features, proposals, targets)
+                    x, result, soften_results, detector_losses, roi_align_features = self.roi_heads(features, proposals,
+                                                                                                    targets)
                 else:
                     x, result, results_background, _ = self.roi_heads(features, proposals, targets)
                     return result, features, results_background
@@ -122,7 +124,8 @@ class GeneralizedRCNN(nn.Module):
 
         images = to_image_list(images)  # convert images to image_list type
         features, backbone_features = self.backbone(images.tensors)  # extra image features from backbone network
-        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features, targets)  # use RPN to generate ROIs
+        (all_proposals, proposal_losses), anchors, rpn_output = self.rpn(images, features,
+                                                                         targets)  # use RPN to generate ROIs
 
         all_selected_proposals = []
         for k in range(len(all_proposals)):
@@ -154,23 +157,28 @@ class GeneralizedRCNN(nn.Module):
                     selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
                     selected_proposal_score = proposal_score[element].view(-1, 1)
                 else:
-                    selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)), 0)  # vertical tensor cascated
-                    selected_proposal_score = torch.cat((selected_proposal_score, proposal_score[element].view(-1, 1)), 1)  # horizontal cascate tensors
+                    selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)),
+                                                       0)  # vertical tensor cascated
+                    selected_proposal_score = torch.cat((selected_proposal_score, proposal_score[element].view(-1, 1)),
+                                                        1)  # horizontal cascate tensors
             selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
             selected_proposal_score = selected_proposal_score.view(-1)
             selected_proposals = BoxList(selected_proposal_bbox, image_size, proposal_mode)
             selected_proposals.add_field("objectness", selected_proposal_score)
             all_selected_proposals.append(selected_proposals)
         # generate soften proposal labels
-        soften_scores, soften_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features, all_selected_proposals)  # use ROI-subnet to generate final results
+        soften_scores, soften_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features,
+                                                                                                              all_selected_proposals)  # use ROI-subnet to generate final results
 
-        return (soften_scores, soften_bboxes), mask_logits, all_selected_proposals, features, backbone_features, anchors, rpn_output, roi_align_features
+        return (soften_scores,
+                soften_bboxes), mask_logits, all_selected_proposals, features, backbone_features, anchors, rpn_output, roi_align_features
 
     def generate_feature_logits_by_targets(self, images, targets=None):
         images = to_image_list(images)  # convert images to image_list type
         features, backbone_features = self.backbone(images.tensors)  # extra image features from backbone network
 
-        target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features, targets)
+        target_scores, target_bboxes, mask_logits, roi_align_features = self.roi_heads.calculate_soften_label(features,
+                                                                                                              targets)
 
         return (target_scores, target_bboxes), mask_logits, features, backbone_features, roi_align_features
 
@@ -192,7 +200,8 @@ class GeneralizedRCNN(nn.Module):
                 selected_proposal_bbox = proposal_bbox[element]
                 selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
             else:
-                selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)), 0)  # vertical tensor cascated
+                selected_proposal_bbox = torch.cat((selected_proposal_bbox, proposal_bbox[element].view(-1, 4)),
+                                                   0)  # vertical tensor cascated
         selected_proposal_bbox = selected_proposal_bbox.view(-1, 4)
         selected_proposals = BoxList(selected_proposal_bbox, image_size, proposal_mode)
         selected_proposals = [selected_proposals]
@@ -202,12 +211,15 @@ class GeneralizedRCNN(nn.Module):
 
         return (soften_scores, soften_bboxes), selected_proposals
 
-    def calculate_roi_distillation_loss(self, images, soften_proposals, soften_results, gt_proposals=None, cls_preprocess=None, cls_loss=None, bbs_loss=None, temperature=1):
+    def calculate_roi_distillation_loss(self, images, soften_proposals, soften_results, gt_proposals=None,
+                                        cls_preprocess=None, cls_loss=None, bbs_loss=None, temperature=1):
 
         soften_scores, soften_bboxes = soften_results
         images = to_image_list(images)
         features, backbone_features = self.backbone(images.tensors)  # extra image features from backbone network
-        target_scores, target_bboxes, roi_align_features = self.roi_heads.calculate_soften_label(features, soften_proposals, soften_results)
+        target_scores, target_bboxes, roi_align_features = self.roi_heads.calculate_soften_label(features,
+                                                                                                 soften_proposals,
+                                                                                                 soften_results)
         num_of_distillation_categories = soften_scores.size()[1]
 
         # compute distillation loss
@@ -244,13 +256,15 @@ class GeneralizedRCNN(nn.Module):
         if cls_loss == 'l2':
             l2_loss = nn.MSELoss(size_average=False, reduce=False)
             class_distillation_loss = l2_loss(modified_soften_scores, modified_target_scores)
-            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1), dim=0)  # average towards categories and proposals
+            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
+                                                 dim=0)  # average towards categories and proposals
         elif cls_loss == 'cross-entropy':  # softmax/sigmoid + cross-entropy
             class_distillation_loss = - modified_soften_scores * torch.log(modified_target_scores)
-            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1), dim=0)  # average towards categories and proposals
+            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
+                                                 dim=0)  # average towards categories and proposals
         elif cls_loss == 'unbiased-cross-entropy':
             new_bkg_idx = torch.tensor([0] + [x for x in range(
-                self.n_old_cl+1, self.n_new_cl+self.n_old_cl+1)]).to(target_scores.device)
+                self.n_old_cl + 1, self.n_new_cl + self.n_old_cl + 1)]).to(target_scores.device)
             den = torch.logsumexp(target_scores, dim=1)
             outputs_no_bgk = target_scores[:, 1:-self.n_new_cl] - den.unsqueeze(dim=1)
             outputs_bkg = torch.logsumexp(torch.index_select(target_scores, index=new_bkg_idx, dim=1), dim=1) - den
@@ -262,15 +276,18 @@ class GeneralizedRCNN(nn.Module):
         elif cls_loss == 'softmax cross-entropy with temperature':  # raw + softmax cross-entropy with temperature
             log_softmax = nn.LogSoftmax()
             softmax = nn.Softmax()
-            class_distillation_loss = - softmax(modified_soften_scores/temperature) * log_softmax(modified_target_scores/temperature)
+            class_distillation_loss = - softmax(modified_soften_scores / temperature) * log_softmax(
+                modified_target_scores / temperature)
             class_distillation_loss = class_distillation_loss * temperature * temperature
-            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1), dim=0)  # average towards categories and proposals
+            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
+                                                 dim=0)  # average towards categories and proposals
         elif cls_loss == 'filtered_l2':
             cls_difference = modified_soften_scores - modified_target_scores
             filter = torch.zeros(modified_soften_scores.size()).to('cuda')
             class_distillation_loss = torch.max(cls_difference, filter)
             class_distillation_loss = class_distillation_loss * class_distillation_loss
-            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1), dim=0)  # average towards categories and proposals
+            class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
+                                                 dim=0)  # average towards categories and proposals
             del filter
             torch.cuda.empty_cache()  # Release unoccupied memory
         else:
@@ -282,12 +299,15 @@ class GeneralizedRCNN(nn.Module):
         if bbs_loss == 'l2':
             l2_loss = nn.MSELoss(size_average=False, reduce=False)
             bbox_distillation_loss = l2_loss(modified_target_bboxes, modified_soften_boxes)
-            bbox_distillation_loss = torch.mean(torch.mean(torch.sum(bbox_distillation_loss, dim=2), dim=1), dim=0)  # average towards categories and proposals
+            bbox_distillation_loss = torch.mean(torch.mean(torch.sum(bbox_distillation_loss, dim=2), dim=1),
+                                                dim=0)  # average towards categories and proposals
         elif bbs_loss == 'smooth_l1':
             num_bboxes = modified_target_bboxes.size()[0]
             num_categories = modified_target_bboxes.size()[1]
-            bbox_distillation_loss = smooth_l1_loss(modified_target_bboxes, modified_soften_boxes, size_average=False, beta=1)
-            bbox_distillation_loss = bbox_distillation_loss / (num_bboxes * num_categories)  # average towards categories and proposals
+            bbox_distillation_loss = smooth_l1_loss(modified_target_bboxes, modified_soften_boxes, size_average=False,
+                                                    beta=1)
+            bbox_distillation_loss = bbox_distillation_loss / (
+                        num_bboxes * num_categories)  # average towards categories and proposals
         else:
             raise ValueError("Wrong loss function for bounding box regression")
 

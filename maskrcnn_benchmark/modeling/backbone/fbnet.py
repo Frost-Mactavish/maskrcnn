@@ -5,15 +5,15 @@ import json
 import logging
 from collections import OrderedDict
 
+import torch.nn as nn
+from maskrcnn_benchmark.modeling import poolers
+from maskrcnn_benchmark.modeling import registry
+from maskrcnn_benchmark.modeling.rpn import rpn
+
 from . import (
     fbnet_builder as mbuilder,
     fbnet_modeldef as modeldef,
 )
-import torch.nn as nn
-from maskrcnn_benchmark.modeling import registry
-from maskrcnn_benchmark.modeling.rpn import rpn
-from maskrcnn_benchmark.modeling import poolers
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def create_builder(cfg):
     if arch in modeldef.MODEL_ARCH:
         if len(arch_def) > 0:
             assert (
-                arch_def == modeldef.MODEL_ARCH[arch]
+                    arch_def == modeldef.MODEL_ARCH[arch]
             ), "Two architectures with the same name {},\n{},\n{}".format(
                 arch, arch_def, modeldef.MODEL_ARCH[arch]
             )
@@ -43,7 +43,7 @@ def create_builder(cfg):
     rpn_stride = arch_def.get("rpn_stride", None)
     if rpn_stride is not None:
         assert (
-            cfg.MODEL.RPN.ANCHOR_STRIDE[0] == rpn_stride
+                cfg.MODEL.RPN.ANCHOR_STRIDE[0] == rpn_stride
         ), "Needs to set cfg.MODEL.RPN.ANCHOR_STRIDE to {}, got {}".format(
             rpn_stride, cfg.MODEL.RPN.ANCHOR_STRIDE
         )
@@ -78,7 +78,7 @@ def _get_trunk_cfg(arch_def):
 
 class FBNetTrunk(nn.Module):
     def __init__(
-        self, builder, arch_def, dim_in,
+            self, builder, arch_def, dim_in,
     ):
         super(FBNetTrunk, self).__init__()
         self.first = builder.add_first(arch_def["first"], dim_in=dim_in)
@@ -120,7 +120,7 @@ def _get_rpn_stage(arch_def, num_blocks):
 
 class FBNetRPNHead(nn.Module):
     def __init__(
-        self, cfg, in_channels, builder, arch_def,
+            self, cfg, in_channels, builder, arch_def,
     ):
         super(FBNetRPNHead, self).__init__()
         assert in_channels == builder.last_depth
@@ -173,8 +173,8 @@ ARCH_CFG_NAME_MAPPING = {
 
 class FBNetROIHead(nn.Module):
     def __init__(
-        self, cfg, in_channels, builder, arch_def,
-        head_name, use_blocks, stride_init, last_layer_scale,
+            self, cfg, in_channels, builder, arch_def,
+            head_name, use_blocks, stride_init, last_layer_scale,
     ):
         super(FBNetROIHead, self).__init__()
         assert in_channels == builder.last_depth

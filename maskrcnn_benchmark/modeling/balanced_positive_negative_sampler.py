@@ -1,6 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-import torch
 import sys
+
+import torch
+
 
 class BalancedPositiveNegativeSampler(object):
     """
@@ -53,7 +55,7 @@ class BalancedPositiveNegativeSampler(object):
             pos_idx_per_image = positive[perm_pos]
             neg_idx_per_image = negative[perm_neg]
 
-            #if objectness is not None:
+            # if objectness is not None:
             #    with torch.no_grad():
             #        pos_indexes = (matched_idxs_per_image >= 1).nonzero().squeeze()
             #        objectness_neg = objectness[negative]

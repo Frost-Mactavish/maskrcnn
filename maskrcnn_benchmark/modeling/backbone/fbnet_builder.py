@@ -19,7 +19,6 @@ from maskrcnn_benchmark.layers import (
 )
 from maskrcnn_benchmark.layers.misc import _NewEmptyTensorOp
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -260,7 +259,7 @@ class Shift(nn.Module):
                     num_ch = C // ksq + C % ksq
                 else:
                     num_ch = C // ksq
-                kernel[ch_idx : ch_idx + num_ch, 0, i, j] = 1
+                kernel[ch_idx: ch_idx + num_ch, 0, i, j] = 1
                 ch_idx += num_ch
 
         self.register_parameter("bias", None)
@@ -341,18 +340,18 @@ class ChannelShuffle(nn.Module):
 
 class ConvBNRelu(nn.Sequential):
     def __init__(
-        self,
-        input_depth,
-        output_depth,
-        kernel,
-        stride,
-        pad,
-        no_bias,
-        use_relu,
-        bn_type,
-        group=1,
-        *args,
-        **kwargs
+            self,
+            input_depth,
+            output_depth,
+            kernel,
+            stride,
+            pad,
+            no_bias,
+            use_relu,
+            bn_type,
+            group=1,
+            *args,
+            **kwargs
     ):
         super(ConvBNRelu, self).__init__()
 
@@ -427,9 +426,9 @@ class Upsample(nn.Module):
 
 def _get_upsample_op(stride):
     assert (
-        stride in [1, 2, 4]
-        or stride in [-1, -2, -4]
-        or (isinstance(stride, tuple) and all(x in [-1, -2, -4] for x in stride))
+            stride in [1, 2, 4]
+            or stride in [-1, -2, -4]
+            or (isinstance(stride, tuple) and all(x in [-1, -2, -4] for x in stride))
     )
 
     scales = stride
@@ -444,20 +443,20 @@ def _get_upsample_op(stride):
 
 class IRFBlock(nn.Module):
     def __init__(
-        self,
-        input_depth,
-        output_depth,
-        expansion,
-        stride,
-        bn_type="bn",
-        kernel=3,
-        width_divisor=1,
-        shuffle_type=None,
-        pw_group=1,
-        se=False,
-        cdw=False,
-        dw_skip_bn=False,
-        dw_skip_relu=False,
+            self,
+            input_depth,
+            output_depth,
+            expansion,
+            stride,
+            bn_type="bn",
+            kernel=3,
+            width_divisor=1,
+            shuffle_type=None,
+            pw_group=1,
+            se=False,
+            cdw=False,
+            dw_skip_bn=False,
+            dw_skip_relu=False,
     ):
         super(IRFBlock, self).__init__()
 
@@ -628,8 +627,8 @@ def _add_to_arch(arch, info, name):
     for stage_idx, stage in enumerate(info):
         for block_idx, block in enumerate(stage):
             assert (
-                arch[idx]["stage_idx"] == stage_idx
-                and arch[idx]["block_idx"] == block_idx
+                    arch[idx]["stage_idx"] == stage_idx
+                    and arch[idx]["block_idx"] == block_idx
             ), "Index ({}, {}) does not match for block {}".format(
                 stage_idx, block_idx, arch[idx]
             )
@@ -692,12 +691,12 @@ def get_blocks(arch_def, stage_indices=None, block_indices=None):
 
 class FBNetBuilder(object):
     def __init__(
-        self,
-        width_ratio,
-        bn_type="bn",
-        width_divisor=1,
-        dw_skip_bn=False,
-        dw_skip_relu=False,
+            self,
+            width_ratio,
+            bn_type="bn",
+            width_divisor=1,
+            dw_skip_bn=False,
+            dw_skip_relu=False,
     ):
         self.width_ratio = width_ratio
         self.last_depth = -1
@@ -793,7 +792,7 @@ class FBNetBuilder(object):
     #     return ret
 
     def _add_ir_block(
-        self, dim_in, dim_out, stride, expand_ratio, block_op_type, **kwargs
+            self, dim_in, dim_out, stride, expand_ratio, block_op_type, **kwargs
     ):
         ret = PRIMITIVES[block_op_type](
             dim_in,

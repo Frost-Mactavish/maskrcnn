@@ -1,10 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-from torch import nn
-from torch.nn import functional as F
-
 from maskrcnn_benchmark.layers import Conv2d
 from maskrcnn_benchmark.layers import ConvTranspose2d
 from maskrcnn_benchmark.modeling import registry
+from torch import nn
+from torch.nn import functional as F
 
 
 @registry.ROI_MASK_PREDICTOR.register("MaskRCNNC4Predictor")

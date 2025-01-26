@@ -1,22 +1,21 @@
+import json
 import os
+import sys
 
+import cv2
+import numpy
+import scipy.io as scio
 import torch
 import torch.utils.data
 import torchvision
 from PIL import Image
-import sys
-import scipy.io as scio
-from scipy.io import loadmat
-
 from maskrcnn_benchmark.data.datasets import COCODataset
-from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
-import json
-import cv2
-import numpy
 from maskrcnn_benchmark.data.transforms import Compose
 from maskrcnn_benchmark.data.transforms.transforms import ToTensor
-
 from maskrcnn_benchmark.structures.bounding_box import BoxList
+from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
+from scipy.io import loadmat
+
 
 def dict_slice(adict, start, end):
     keys = list(adict.keys())
@@ -27,7 +26,6 @@ def dict_slice(adict, start, end):
         dict_slice[k] = adict[k]
     # print('dict_slice: {0}'.format(dict_slice))
     return dict_slice
-
 
 
 def _count_visible_keypoints(anno):
@@ -51,6 +49,7 @@ def has_valid_annotation(anno):
         return True
     return False
 
+
 def image_annotation(anno, classes):
     """
     only new categories' annotations
@@ -61,7 +60,8 @@ def image_annotation(anno, classes):
             real_anno.append(i)
     return real_anno
 
-def check_if_insert(anno,classes):
+
+def check_if_insert(anno, classes):
     for i in anno:
         if PascalVOCDataset2012.CLASSES[i['category_id']] in classes:
             return True
@@ -69,12 +69,13 @@ def check_if_insert(anno,classes):
     return False
 
 
-
 class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
-    def __init__(self, data_dir, ann_file, split, use_difficult, transforms=None, external_proposal=False, old_classes=[],
+    def __init__(self, data_dir, ann_file, split, use_difficult, transforms=None, external_proposal=False,
+                 old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True):
         super(PascalVOCDataset2012, self).__init__(data_dir, ann_file)
         self.ids = sorted(self.ids)
@@ -94,7 +95,7 @@ class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
                         count = count + 1
                         ids.append(img_id)
                 else:
-                    if check_if_insert(anno, new_classes+old_classes):  # filtering images for new categories
+                    if check_if_insert(anno, new_classes + old_classes):  # filtering images for new categories
                         count = count + 1
                         ids.append(img_id)
         self.final_ids = ids
@@ -114,7 +115,7 @@ class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
     def _load_target(self, id):
         return self.coco.loadAnns(self.coco.getAnnIds(id))
 
-    def __getitem__(self, index,shouldTransform=True):
+    def __getitem__(self, index, shouldTransform=True):
         img, anno = super(PascalVOCDataset2012, self).__getitem__(index)
         id = self.final_ids[index]
         img = self._load_image(id)
@@ -138,7 +139,7 @@ class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
         masks = [obj["segmentation"] for obj in anno]
         masks = SegmentationMask(masks, img.size, mode='mask')
         for m in masks.instances:
-            if (m==1).nonzero().shape[0] == 0:
+            if (m == 1).nonzero().shape[0] == 0:
                 print()
         if len(masks.instances) == 0:
             print("something")
@@ -291,10 +292,10 @@ class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
 
             if exclude_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
             elif self.is_train and old_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
             else:
                 boxes.append(bndbox)
                 gt_classes.append(self.class_to_ind[name])
@@ -318,7 +319,6 @@ class PascalVOCDataset2012(torchvision.datasets.coco.CocoDetection):
         img_id = self.final_ids[index]
         img_data = self.coco.imgs[img_id]
         return img_data
-
 
     def map_class_id_to_class_name(self, class_id):
         return PascalVOCDataset2012.CLASSES[class_id]

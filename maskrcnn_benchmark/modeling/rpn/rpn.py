@@ -1,14 +1,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
 import torch.nn.functional as F
-from torch import nn
-
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from maskrcnn_benchmark.modeling.rpn.retinanet.retinanet import build_retinanet
-from .loss import make_rpn_loss_evaluator
+from torch import nn
+
 from .anchor_generator import make_anchor_generator
 from .inference import make_rpn_postprocessor
+from .loss import make_rpn_loss_evaluator
 
 
 class RPNHeadConvRegressor(nn.Module):
@@ -178,7 +178,8 @@ class RPNModule(torch.nn.Module):
         rpn_output = (objectness, rpn_box_regression)
 
         if self.training:
-            return self._forward_train(anchors, objectness, rpn_box_regression, targets, rpn_output_source), anchors, rpn_output
+            return self._forward_train(anchors, objectness, rpn_box_regression, targets,
+                                       rpn_output_source), anchors, rpn_output
         else:
             return self._forward_test(anchors, objectness, rpn_box_regression), anchors, rpn_output
 
@@ -193,7 +194,8 @@ class RPNModule(torch.nn.Module):
             # For end-to-end models, anchors must be transformed into boxes and sampled into a training batch.
             with torch.no_grad():
                 boxes = self.box_selector_train(anchors, objectness, rpn_box_regression, targets)
-        loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression, targets, rpn_output_source)
+        loss_objectness, loss_rpn_box_reg = self.loss_evaluator(anchors, objectness, rpn_box_regression, targets,
+                                                                rpn_output_source)
         losses = {
             "loss_objectness": loss_objectness,
             "loss_rpn_box_reg": loss_rpn_box_reg,
@@ -225,7 +227,7 @@ def build_rpn(cfg, in_channels):
     """
 
     print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
-    
+
     if cfg.MODEL.RETINANET_ON:
         return build_retinanet(cfg, in_channels)
 

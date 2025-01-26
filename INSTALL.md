@@ -1,7 +1,9 @@
 ## Installation
 
 ### Requirements:
-- PyTorch 1.0 from a nightly release. It **will not** work with 1.0 nor 1.0.1. Installation instructions can be found in https://pytorch.org/get-started/locally/
+
+- PyTorch 1.0 from a nightly release. It **will not** work with 1.0 nor 1.0.1. Installation instructions can be found
+  in https://pytorch.org/get-started/locally/
 - torchvision from master
 - cocoapi
 - yacs
@@ -9,7 +11,6 @@
 - GCC >= 4.9
 - OpenCV
 - CUDA >= 9.0
-
 
 ### Option 1: Step-by-step installation
 
@@ -70,6 +71,7 @@ unset INSTALL_DIR
 ```
 
 ### Option 2: Set the dataset
+
 ``` bash
 
 # link the corresponding VOC dataset path to the current directory

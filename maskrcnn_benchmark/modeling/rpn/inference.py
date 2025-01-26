@@ -1,14 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_nms
+from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from maskrcnn_benchmark.structures.boxlist_ops import remove_small_boxes
 
-from ..utils import cat
 from .utils import permute_and_flatten
+from ..utils import cat
 
 
 class RPNPostProcessor(torch.nn.Module):
@@ -17,14 +16,14 @@ class RPNPostProcessor(torch.nn.Module):
     """
 
     def __init__(
-        self,
-        pre_nms_top_n,
-        post_nms_top_n,
-        nms_thresh,
-        min_size,
-        box_coder=None,
-        fpn_post_nms_top_n=None,
-        fpn_post_nms_per_batch=True,
+            self,
+            pre_nms_top_n,
+            post_nms_top_n,
+            nms_thresh,
+            min_size,
+            box_coder=None,
+            fpn_post_nms_top_n=None,
+            fpn_post_nms_per_batch=True,
     ):
         """
         Arguments:

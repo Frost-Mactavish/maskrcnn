@@ -1,17 +1,17 @@
+import os
+import random
+import sys
 from email.mime import image
 from operator import gt
-import os
 from re import T
 from tracemalloc import is_tracing
 
+import cv2
+import numpy as np
+import scipy.io as scio
 import torch
 import torch.utils.data
 from PIL import Image, ImageFilter
-import sys
-import scipy.io as scio
-import cv2
-import numpy as np
-import random
 from maskrcnn_benchmark.data.transforms import Compose
 
 if sys.version_info[0] == 2:
@@ -30,7 +30,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True, is_father=True, cfg=None):
@@ -52,19 +53,19 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self.old_classes = old_classes
         self.new_classes = new_classes
         self.exclude_classes = excluded_classes
-        
+
         self.is_train = is_train
         self.is_father = is_father
 
         self.final_ids = []
-        
+
         # load data from all categories
         # self._normally_load_voc()
 
         if self.is_father:
             # do not use old data
             if self.is_train:
-                print('voc.py | in training mode') # training mode 
+                print('voc.py | in training mode')  # training mode
                 self._load_img_from_NEW_cls_without_old_data()
             elif not self.is_train:
                 print('voc.py | in test mode')
@@ -124,7 +125,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
         cls = PascalVOCDataset.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))
-        
+
     def _load_img_from_NEW_cls_without_old_data(self):
         self.ids = []
         for incremental in self.new_classes:  # read corresponding class images from the data set
@@ -235,7 +236,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         gt_classes = []
         difficult_boxes = []
         TO_REMOVE = 1
-        
+
         # normal for train or test
         for obj in target.iter("object"):
             difficult = int(obj.find("difficult").text) == 1
@@ -262,10 +263,10 @@ class PascalVOCDataset(torch.utils.data.Dataset):
 
             if exclude_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
             elif self.is_train and old_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
             else:
                 boxes.append(bndbox)
                 gt_classes.append(self.class_to_ind[name])
@@ -303,7 +304,8 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True, cfg=None):
@@ -311,10 +313,11 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
             Augmented Box Replay for PascalVOCDataset.
         """
         self.cfg = cfg  # import the basic cfg for setting the dataset
-        self.is_father = self.cfg.IS_FATHER # for general dataloader
+        self.is_father = self.cfg.IS_FATHER  # for general dataloader
 
         # set the father Class
-        super().__init__(data_dir, split, use_difficult, transforms, external_proposal, old_classes, new_classes, excluded_classes, is_train, self.is_father, cfg=cfg)
+        super().__init__(data_dir, split, use_difficult, transforms, external_proposal, old_classes, new_classes,
+                         excluded_classes, is_train, self.is_father, cfg=cfg)
 
         if not self.is_father:
             self.total_classes = self.old_classes + self.new_classes
@@ -323,24 +326,24 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
 
             ### ---- Memory Managment Configation -----###
             self.is_mem = False
-            if cfg.MEM_BUFF != None: # start to use the rehearsal (box images)
+            if cfg.MEM_BUFF != None:  # start to use the rehearsal (box images)
                 self.is_mem = True
-            self.mem_buff=self.cfg.MEM_BUFF # memory buffer size
-            self.mem_type=self.cfg.MEM_TYPE # the type for choosing memory
-            self.is_sample = cfg.IS_SAMPLE # is the sampling phase or not
+            self.mem_buff = self.cfg.MEM_BUFF  # memory buffer size
+            self.mem_type = self.cfg.MEM_TYPE  # the type for choosing memory
+            self.is_sample = cfg.IS_SAMPLE  # is the sampling phase or not
 
             self.PrototypeBoxSelection = None
-            self.BoxRehearsal_path = None # the box rehearsal memory
-            self.boxes_index = [] # the box-memory index
+            self.BoxRehearsal_path = None  # the box rehearsal memory
+            self.boxes_index = []  # the box-memory index
             self.bg_size = 0
 
             if self.is_train and self.is_mem:  # training mode
                 print('voc.py | in training with box rehearsal memory mode')
                 self._load_img_from_NEW_and_OLD_cls_with_old_mem()
-            elif not self.is_train and self.is_sample: # sampling mode
+            elif not self.is_train and self.is_sample:  # sampling mode
                 print('voc.py | in sampling mode')
                 self._load_img_from_NEW_cls()
-            elif not self.is_train and not self.is_sample: # testing mode
+            elif not self.is_train and not self.is_sample:  # testing mode
                 print('voc.py | in test mode')
                 self._load_img_from_NEW_and_OLD_cls_without_old_data()
 
@@ -348,9 +351,9 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         """ load new data with only new classes, and box rehearsal memory with only old classes """
         cls = PascalVOCDataset_ABR.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))
-        
+
         ###### 1. loading the current images with new classes  ######
-        self.new_ids = [] # only the current images index number
+        self.new_ids = []  # only the current images index number
         # only for the new classes images
         for incremental in self.new_classes:  # read corresponding class images from the data set
             img_ids_per_category = []
@@ -373,7 +376,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                         img_ids_per_category.append(x[0])
                         self.new_ids.append(x[0])
                 else:
-                # 1 contains this class
+                    # 1 contains this class
                     img_ids_per_category.append(x[0])
                     self.new_ids.append(x[0])
             # print('voc.py | load_img_from_NEW_cls_without_old_data | number of images in {0}_{1} set: {2}'.format(incremental, self.image_set, len(img_ids_per_category)))
@@ -388,22 +391,23 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                     break
             if not repeat_flag:
                 self.final_ids.append(id)
-        print('voc.py | load_img_from_NEW_cls | total used number of new images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
-        
+        print('voc.py | load_img_from_NEW_cls | total used number of new images in {0}: {1}'.format(self.image_set,
+                                                                                                    len(self.final_ids)))
+
         ###### 2. loading box rehearsal memory images of task task t-1 ######
-        
+
         self.PrototypeBoxSelection = Mem(self.cfg, self.cfg.STEP)
         self.BoxRehearsal_path = self.PrototypeBoxSelection.exemplar
         random.shuffle(self.BoxRehearsal_path)
-        
+
         self.boxes_index = list(range(len(self.BoxRehearsal_path)))
 
         # print('voc.py | load_img_from_NEW_and_OLD_cls_with_old_mem | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
         print('voc.py | load_boxes_from_old_mem | total used number of boexes: {0}'.format(len(self.BoxRehearsal_path)))
-        
+
         # store new image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
-        
+
     def _load_img_from_NEW_cls(self):
         """ Just for sampling! load the current images (new classes) """
         self.ids = []
@@ -423,7 +427,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                 elif x[2] == '0':  # include difficult level object
                     pass
                 else:
-                # 1 contains this class
+                    # 1 contains this class
                     img_ids_per_category.append(x[0])
                     self.ids.append(x[0])
 
@@ -486,7 +490,8 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                 _current_image, _current_targets = self.transform_current_data_with_ABR(current_image, current_targets)
 
                 if self.transforms is not None:
-                    _current_image, _current_targets, proposal = self.transforms(_current_image, _current_targets, proposal)
+                    _current_image, _current_targets, proposal = self.transforms(_current_image, _current_targets,
+                                                                                 proposal)
 
                 return _current_image, _current_targets, proposal, img_id
         else:
@@ -521,7 +526,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         """
         # Get the path to the box image
         box_im_path = self.PrototypeBoxSelection.current_mem_path
-        if self.PrototypeBoxSelection.current_mem_path==None:
+        if self.PrototypeBoxSelection.current_mem_path == None:
             box_im_path = self.PrototypeBoxSelection.first_mem_path
 
         box_im_path = os.path.join(box_im_path, self.BoxRehearsal_path[self.boxes_index[i]])
@@ -537,21 +542,21 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         # Calculate mean size of current input image and box
         im_mean_size = np.mean(im_shape)
         box_mean_size = np.mean(np.array([int(bboxes[2]), int(bboxes[3])]))
-        
-         # Modify the box size based on mean sizes
-        if float(box_mean_size) >= float(im_mean_size*0.2) and float(box_mean_size) <= float(im_mean_size*0.7):
+
+        # Modify the box size based on mean sizes
+        if float(box_mean_size) >= float(im_mean_size * 0.2) and float(box_mean_size) <= float(im_mean_size * 0.7):
             box_scale = 1.0
         else:
-            box_scale = random.uniform(float(im_mean_size*0.4), float(im_mean_size*0.6)) / float(box_mean_size)
-        
+            box_scale = random.uniform(float(im_mean_size * 0.4), float(im_mean_size * 0.6)) / float(box_mean_size)
+
         # Resize the box image
         box_im = box_im.resize((int(box_scale * box_o_w), int(box_scale * box_o_h)))
-        
+
         # Define ground truth boxes
         gt_boxes = [0, 0, box_im.size[0], box_im.size[1], gt_classes]
-        
+
         return box_im, np.array([gt_boxes]), self.boxes_index[i]
-    
+
     def _start_mixup(self, image, targets, alpha=2.0, beta=5.0):
         """ Mixup the input image
 
@@ -564,7 +569,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         image = np.array(image)
         # image.flags.writeable = True
         img_shape = image.shape
-        
+
         if not isinstance(targets, np.ndarray):
             gts = []
             bbox_list = targets.bbox.tolist()
@@ -574,31 +579,31 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
             gts = np.array(gts)
         else:
             gts = targets
-            
+
         # make sure the image has more than one targets
         # If the only target occupies 75% of the image, we abandon mixupping.
-        _MIXUP=True
+        _MIXUP = True
         if gts.shape[0] == 1:
-            img_w = gts[0][2]-gts[0][0]
-            img_h = gts[0][3]-gts[0][1]
-            if (img_shape[1]-img_w)<(img_shape[1]*0.25) and (img_shape[0]-img_h)<(img_shape[0]*0.25):
-                _MIXUP=False
-        
+            img_w = gts[0][2] - gts[0][0]
+            img_h = gts[0][3] - gts[0][1]
+            if (img_shape[1] - img_w) < (img_shape[1] * 0.25) and (img_shape[0] - img_h) < (img_shape[0] * 0.25):
+                _MIXUP = False
+
         ##### For normal mixup ######
-        if _MIXUP: # 
+        if _MIXUP:  #
             # lambda: Sampling from a beta distribution 
             Lambda = torch.distributions.beta.Beta(alpha, beta).sample().item()
-            num_mixup = 3 # more mixup boxes but not all used
-            
+            num_mixup = 3  # more mixup boxes but not all used
+
             # makesure the self.boxes_index has enough boxes
             if len(self.boxes_index) < self.batch_size:
                 # print("A repeat for boxes memory!")
                 self.boxes_index = list(range(len(self.BoxRehearsal_path)))
-                
+
             mixup_count = 0
             for i in range(num_mixup):
                 c_img, c_gt, b_id = self._sample_per_bbox_from_boxrehearsal(i, img_shape)
-            
+
                 c_img = np.asarray(c_img)
                 _c_gt = c_gt.copy()
 
@@ -612,7 +617,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                 max_iter = 0
                 # compute the overlap with each gts in image
                 while restart:
-                    for g in gts:      
+                    for g in gts:
                         _, overlap = self.compute_overlap(g, new_gt)
                         if max_iter >= 20:
                             # if iteration > 20, delete current choosed sample
@@ -628,7 +633,8 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                             # if overlap is True, then change the position at right bottom
                             pos_x = random.randint(int(img_shape[1] * 0.4), img_shape[1])
                             pos_y = random.randint(int(img_shape[0] * 0.6), img_shape[0])
-                            new_gt = [pos_x-(c_gt[0][2]-c_gt[0][0]), pos_y-(c_gt[0][3]-c_gt[0][1]), pos_x, pos_y]
+                            new_gt = [pos_x - (c_gt[0][2] - c_gt[0][0]), pos_y - (c_gt[0][3] - c_gt[0][1]), pos_x,
+                                      pos_y]
                             max_iter += 1
                             restart = True
                             break
@@ -656,9 +662,9 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                         new_gt[1] = 0
 
                     # Use the formula by the paper to weight each image
-                    img1 = Lambda*image[new_gt[1]:new_gt[3], new_gt[0]:new_gt[2]]
-                    c_img = (1-Lambda)*c_img
-                    
+                    img1 = Lambda * image[new_gt[1]:new_gt[3], new_gt[0]:new_gt[2]]
+                    c_img = (1 - Lambda) * c_img
+
                     # Combine the images
                     if a == 0 and b == 0:
                         if c == 0 and d == 0:
@@ -682,85 +688,85 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
                         gts = _c_gt
                     else:
                         gts = np.insert(gts, 0, values=_c_gt, axis=0)
-                    
+
                     # delete the mixed boxes
                     if b_id in self.boxes_index:
                         self.boxes_index.remove(b_id)
 
                 mixup_count += 1
-                if mixup_count>=2:
+                if mixup_count >= 2:
                     break
-        
+
         Current_image = Image.fromarray(np.uint8(image))
         Current_target = BoxList(gts[:, :4], (img_shape[1], img_shape[0]))
         Current_target.add_field("labels", torch.tensor(gts[:, 4]))
-        
+
         return Current_image, Current_target
 
     def _start_boxes_mosaic(self, s_imgs=[], targets=[], num_boxes=4):
         """ Start mosaic boxes. 
             A composite image is formed by combining four box images into a single mosaic image
         """
-        
-        gt4 = [] # the final groundtruth space
-        if len(targets)>=1:
+
+        gt4 = []  # the final groundtruth space
+        if len(targets) >= 1:
             # print(len(s_imgs))
-            id = [-1 for i in range(len(s_imgs))] # for the new image
+            id = [-1 for i in range(len(s_imgs))]  # for the new image
         else:
             id = []
-        
-        scale = int(np.mean(s_imgs.size)) # keep the same size with current image
+
+        scale = int(np.mean(s_imgs.size))  # keep the same size with current image
         s_w = scale
         s_h = scale
-        
+
         ### FOR without NEW IMAGE
         # The scaling factor mu randomly sampled from the range of [0.4, 0.6]
-        yc = int(random.uniform(s_h*0.4, s_h*0.6)) # set the mosaic center position
-        xc = int(random.uniform(s_w*0.4, s_w*0.6))
-        
+        yc = int(random.uniform(s_h * 0.4, s_h * 0.6))  # set the mosaic center position
+        xc = int(random.uniform(s_w * 0.4, s_w * 0.6))
+
         ### FOR ONE NEW IMAGE
         # yc = int(random.uniform(s_h*0.3, s_h*0.4)) # set the mosaic center position
         # xc = int(random.uniform(s_w*0.3, s_w*0.4))
-        
+
         ### preparing the enough box memory for mosaic ###
         if len(self.boxes_index) < self.batch_size:
             # print("A repeat for boxes memory!")
             self.boxes_index = list(range(len(self.BoxRehearsal_path)))
-            
-        imgs = [] 
+
+        imgs = []
         for i in range(num_boxes):
             # put the new images and box memory together
             img, target, b_id = self._sample_per_bbox_from_boxrehearsal(i, s_imgs.size)
             imgs.append(img)
             targets.append(target)
             id.append(b_id)
-        
+
         #### Begin to mosaic ####
         for i, (img, target, b_id) in enumerate(zip(imgs, targets, id)):
             (w, h) = img.size
-            if i%4==0: # top right
-                xc_ = xc+self.bg_size
-                yc_ = yc-self.bg_size
+            if i % 4 == 0:  # top right
+                xc_ = xc + self.bg_size
+                yc_ = yc - self.bg_size
                 img4 = np.full((s_h, s_w, 3), 114., dtype=np.float32)
-                x1a, y1a, x2a, y2a = xc_, max(yc_-h, 0), min(xc_+w, s_w), yc_
-                x1b, y1b, x2b, y2b = 0, h-(y2a - y1a), min(w, x2a - x1a), h # should corresponding to top left
-            elif i%4==1: # bottom left
-                xc_ = xc-self.bg_size
-                yc_ = yc+self.bg_size
+                x1a, y1a, x2a, y2a = xc_, max(yc_ - h, 0), min(xc_ + w, s_w), yc_
+                x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h  # should corresponding to top left
+            elif i % 4 == 1:  # bottom left
+                xc_ = xc - self.bg_size
+                yc_ = yc + self.bg_size
                 x1a, y1a, x2a, y2a = max(xc_ - w, 0), yc_, xc_, min(s_h, yc_ + h)
                 x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc_, w), min(y2a - y1a, h)
-            elif i%4==2: # bottom right
-                xc_ = xc+self.bg_size
-                yc_ = yc+self.bg_size
-                x1a, y1a, x2a, y2a = xc_, yc_, min(xc_ + w, s_w), min(s_h, yc_+h)
+            elif i % 4 == 2:  # bottom right
+                xc_ = xc + self.bg_size
+                yc_ = yc + self.bg_size
+                x1a, y1a, x2a, y2a = xc_, yc_, min(xc_ + w, s_w), min(s_h, yc_ + h)
                 x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
-            elif i%4==3: # top left
-                xc_ = xc-self.bg_size
-                yc_ = yc-self.bg_size
-                x1a, y1a, x2a, y2a = max(xc_- w, 0), max(yc_ - h, 0), xc_, yc_
-                x1b, y1b, x2b, y2b = w - (x2a - x1a), h-(y2a - y1a), w, h
+            elif i % 4 == 3:  # top left
+                xc_ = xc - self.bg_size
+                yc_ = yc - self.bg_size
+                x1a, y1a, x2a, y2a = max(xc_ - w, 0), max(yc_ - h, 0), xc_, yc_
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
 
-            img4[y1a:y2a, x1a:x2a] = np.asarray(img)[y1b:y2b,x1b:x2b]
+            img4[y1a:y2a, x1a:x2a] = np.asarray(img)[y1b:y2b, x1b:x2b]
             padw = x1a - x1b
             padh = y1a - y1b
 
@@ -784,7 +790,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
             # delete the mosaiced boxes
             if b_id in self.boxes_index:
                 self.boxes_index.remove(b_id)
-                
+
         # Concat/clip gts
         if len(gt4):
             gt4 = np.concatenate(gt4, 0)
@@ -796,7 +802,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         # Delete too small objects (check again)
         del_index = []
         for col in range(gt4.shape[0]):
-            if (gt4[col][2]-gt4[col][0]) <= 2.0 or (gt4[col][3]-gt4[col][1]) <= 2.0:
+            if (gt4[col][2] - gt4[col][0]) <= 2.0 or (gt4[col][3] - gt4[col][1]) <= 2.0:
                 del_index.append(col)
         gt4 = np.delete(gt4, del_index, axis=0)
 
@@ -816,21 +822,21 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         return Current_image, Current_target
 
     def _get_index(lst, item):
-        return [index for (index, value) in enumerate(lst) if value==item]
-    
+        return [index for (index, value) in enumerate(lst) if value == item]
+
     def transform_current_data_with_ABR(self, img=None, target=None):
         """ begin to mosaic or mixup the box images into current image """
-        
+
         # set the ratio for replay
         # MIX,MOS,NEW=1:1:2
         is_mosaic = False
         is_mixup = False
-        if random.randint(0, 1)==0:
-            if random.randint(0, 1)==0:
+        if random.randint(0, 1) == 0:
+            if random.randint(0, 1) == 0:
                 is_mixup = True
             else:
-                is_mosaic=True
-        
+                is_mosaic = True
+
         (current_image, current_targets) = (img, target)
 
         if is_mosaic:
@@ -856,7 +862,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         #     current_image.save('output/box_images/10-10/current_image_{}.jpg'.format(img_id))
 
         return current_image, current_targets
-    
+
     def get_groundtruth_ABR(self, index):
         """ preparing the groundtruth for current index image """
         img_id = self.final_ids[index]
@@ -942,16 +948,16 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
         iw = np.maximum(iw, 0)
         ih = np.maximum(ih, 0)
 
-        aa = (a[2] - a[0] + 1)*(a[3] - a[1]+1)
+        aa = (a[2] - a[0] + 1) * (a[3] - a[1] + 1)
         ba = area
 
-        intersection = iw*ih
+        intersection = iw * ih
 
         # this parameter can be changes for different datasets
-        if intersection/aa > 0.3 or intersection/ba > 0.3:
-            return intersection/ba, True
+        if intersection / aa > 0.3 or intersection / ba > 0.3:
+            return intersection / ba, True
         else:
-            return intersection/ba, False
+            return intersection / ba, False
 
 
 if __name__ == '__main__':
@@ -961,10 +967,10 @@ if __name__ == '__main__':
     transforms = None
     is_train = True
 
-    NAME_OLD_CLASSES=["aeroplane", "bicycle", "bird","boat", "bottle", "bus", "car", "cat", "chair", "cow",
-                       "diningtable", "dog", "horse", "motorbike", "person"]
-    NAME_NEW_CLASSES=["pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    NAME_OLD_CLASSES = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+                        "diningtable", "dog", "horse", "motorbike", "person"]
+    NAME_NEW_CLASSES = ["pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
     mem_buff = 2000
-    dataset = PascalVOCDataset_ABR(data_dir, split, use_difficult, transforms, is_train=is_train, 
-                                old_classes=NAME_OLD_CLASSES, new_classes=NAME_NEW_CLASSES, mem_buff=mem_buff)
+    dataset = PascalVOCDataset_ABR(data_dir, split, use_difficult, transforms, is_train=is_train,
+                                   old_classes=NAME_OLD_CLASSES, new_classes=NAME_NEW_CLASSES, mem_buff=mem_buff)

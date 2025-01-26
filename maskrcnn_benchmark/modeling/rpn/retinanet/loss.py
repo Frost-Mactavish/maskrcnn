@@ -4,17 +4,17 @@ file
 """
 
 import torch
+from maskrcnn_benchmark.layers import SigmoidFocalLoss
+from maskrcnn_benchmark.layers import smooth_l1_loss
+from maskrcnn_benchmark.modeling.matcher import Matcher
+from maskrcnn_benchmark.modeling.rpn.loss import RPNLossComputation
+from maskrcnn_benchmark.modeling.utils import cat
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from torch.nn import functional as F
 
 from ..utils import concat_box_prediction_layers
 
-from maskrcnn_benchmark.layers import smooth_l1_loss
-from maskrcnn_benchmark.layers import SigmoidFocalLoss
-from maskrcnn_benchmark.modeling.matcher import Matcher
-from maskrcnn_benchmark.modeling.utils import cat
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
-from maskrcnn_benchmark.modeling.rpn.loss import RPNLossComputation
 
 class RetinaNetLossComputation(RPNLossComputation):
     """
@@ -57,7 +57,7 @@ class RetinaNetLossComputation(RPNLossComputation):
 
         N = len(labels)
         box_cls, box_regression = \
-                concat_box_prediction_layers(box_cls, box_regression)
+            concat_box_prediction_layers(box_cls, box_regression)
 
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
@@ -101,7 +101,7 @@ def make_retinanet_loss_evaluator(cfg, box_coder):
         box_coder,
         generate_retinanet_labels,
         sigmoid_focal_loss,
-        bbox_reg_beta = cfg.MODEL.RETINANET.BBOX_REG_BETA,
-        regress_norm = cfg.MODEL.RETINANET.BBOX_REG_WEIGHT,
+        bbox_reg_beta=cfg.MODEL.RETINANET.BBOX_REG_BETA,
+        regress_norm=cfg.MODEL.RETINANET.BBOX_REG_WEIGHT,
     )
     return loss_evaluator

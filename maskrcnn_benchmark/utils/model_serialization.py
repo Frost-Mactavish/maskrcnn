@@ -1,9 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 
 import torch
-
 from maskrcnn_benchmark.utils.imports import import_file
 
 

@@ -1,33 +1,26 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
 import os
-
 import timeit
+
 import torch
-from maskrcnn_benchmark.config import cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
+from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader  # import dataset
-from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
-from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import do_train  # main logic of model training
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
+from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
+from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import synchronize, get_rank, get_world_size  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.comm import synchronize, get_rank, \
+    get_world_size  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 from torch.utils.tensorboard import SummaryWriter
-
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
 
 import os
 
@@ -53,8 +46,6 @@ def train(cfg, local_rank, distributed):
     # Initialize mixed-precision training
     use_mixed_precision = cfg.DTYPE == "float16"
     print(cfg.DTYPE)
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
 
     # if multiple gpus are used, parallel processing data
     if distributed:
@@ -67,7 +58,7 @@ def train(cfg, local_rank, distributed):
     # create a parameter dictionary and initialize the iteration number to 0
     arguments = {}
     arguments["iteration"] = 0
-    
+
     # path to store the trained parameter value
     output_dir = cfg.OUTPUT_DIR
 
@@ -110,7 +101,7 @@ def train(cfg, local_rank, distributed):
         checkpoint_period,
         arguments,
     )
-    
+
     checkpointer.save("model_trimmed", trim=True, **arguments)
 
     return model
@@ -161,7 +152,7 @@ def main():
     parser.add_argument(
         "-c", "--config_file",
         default="../configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
-        metavar="FILE", 
+        metavar="FILE",
         help="path to config file",
         type=str,
     )
@@ -190,7 +181,7 @@ def main():
     )
 
     args = parser.parse_args()
-    
+
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_visible_devices
 
     # if there is more than 1 gpu, set initialization for distribute training
@@ -203,9 +194,9 @@ def main():
     print("I'm using ", num_gpus, " gpus!")
 
     cfg.merge_from_file(args.config_file)
-    cfg.IS_FATHER = True # loading the data by general way
+    cfg.IS_FATHER = True  # loading the data by general way
     cfg.merge_from_list(args.opts)
-  
+
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR
@@ -234,6 +225,6 @@ def main():
         # start to test the trained model
         run_test(cfg)
 
+
 if __name__ == "__main__":
     main()
-

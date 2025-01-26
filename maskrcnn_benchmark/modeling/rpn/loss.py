@@ -5,17 +5,15 @@ file
 """
 
 import torch
-from torch.nn import functional as F
-
-from .utils import concat_box_prediction_layers
-
-from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
-from ..utils import cat
-
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
+from torch.nn import functional as F
+
+from .utils import concat_box_prediction_layers
+from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
+from ..utils import cat
 
 
 class RPNLossComputation(object):
@@ -69,7 +67,9 @@ class RPNLossComputation(object):
         overlap_result = []
         matched_result = []
         for anchors_per_image, targets_per_image in zip(anchors, targets):
-            matched_targets, matched_quality_matrix = self.match_targets_to_anchors(anchors_per_image, targets_per_image, self.copied_fields)
+            matched_targets, matched_quality_matrix = self.match_targets_to_anchors(anchors_per_image,
+                                                                                    targets_per_image,
+                                                                                    self.copied_fields)
 
             matched_idxs = matched_targets.get_field("matched_idxs")
 
@@ -126,47 +126,55 @@ class RPNLossComputation(object):
         sampled_inds = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
 
         objectness, box_regression = concat_box_prediction_layers(objectness, box_regression)
-        #with torch.no_grad():
+        # with torch.no_grad():
         #    objectness_source, box_regression_source = concat_box_prediction_layers(rpn_output_source[0], rpn_output_source[1])
 
         objectness = objectness.squeeze()
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
 
-        box_loss = smooth_l1_loss(box_regression[sampled_pos_inds], regression_targets[sampled_pos_inds], beta=1.0/9, size_average=False) / (sampled_inds.numel())
+        box_loss = smooth_l1_loss(box_regression[sampled_pos_inds], regression_targets[sampled_pos_inds], beta=1.0 / 9,
+                                  size_average=False) / (sampled_inds.numel())
         # print('rpn | loss.py | call | box_loss : {0}'.format(box_loss))
 
-        #final_labels, final_idx = transform_labels_neg_index_incremental(labels, sampled_pos_inds, sampled_neg_inds,
+        # final_labels, final_idx = transform_labels_neg_index_incremental(labels, sampled_pos_inds, sampled_neg_inds,
         #                                                      objectness_source, objectness)
 
-        #cat_labels = torch.vstack([labels[sampled_inds], torch.sigmoid(objectness_source.squeeze()[sampled_inds])])
-        #final_labels = torch.max(cat_labels, dim=0).values
+        # cat_labels = torch.vstack([labels[sampled_inds], torch.sigmoid(objectness_source.squeeze()[sampled_inds])])
+        # final_labels = torch.max(cat_labels, dim=0).values
 
-        objectness_loss = F.binary_cross_entropy_with_logits(objectness[sampled_inds], labels[sampled_inds], weight=None, size_average=None, reduce=None, reduction='none')
+        objectness_loss = F.binary_cross_entropy_with_logits(objectness[sampled_inds], labels[sampled_inds],
+                                                             weight=None, size_average=None, reduce=None,
+                                                             reduction='none')
         original_objectness_loss = torch.mean(objectness_loss)
 
         return original_objectness_loss, box_loss
 
 
-def transform_labels_neg_index_incremental(labels, sampled_pos_inds, sampled_neg_inds, objectness_source, objectness_target):
+def transform_labels_neg_index_incremental(labels, sampled_pos_inds, sampled_neg_inds, objectness_source,
+                                           objectness_target):
     with torch.no_grad():
         sigm_obj_source = torch.sigmoid(objectness_source.squeeze())
         sigm_obj_target = torch.sigmoid(objectness_target)
         higher_teacher_idx = (sigm_obj_source > sigm_obj_target).nonzero().squeeze()
-        if(len(higher_teacher_idx.shape) == 0):
+        if (len(higher_teacher_idx.shape) == 0):
             higher_teacher_idx = higher_teacher_idx.unsqueeze(dim=0)
         if higher_teacher_idx.numel() > 0:
-            max_dim_higher_teacher = int(sampled_neg_inds.numel()/2)
+            max_dim_higher_teacher = int(sampled_neg_inds.numel() / 2)
             actual_dim_higher_teacher = min(max_dim_higher_teacher, higher_teacher_idx.numel())
-            mod_idx = torch.hstack((sampled_pos_inds, sampled_neg_inds[0:sampled_neg_inds.numel()-actual_dim_higher_teacher], higher_teacher_idx[0:actual_dim_higher_teacher]))
+            mod_idx = torch.hstack((sampled_pos_inds,
+                                    sampled_neg_inds[0:sampled_neg_inds.numel() - actual_dim_higher_teacher],
+                                    higher_teacher_idx[0:actual_dim_higher_teacher]))
             mod_labels = torch.ones(sampled_pos_inds.shape[0] + sampled_neg_inds.shape[0])
-            mod_labels[sampled_pos_inds.numel():mod_labels.numel()-actual_dim_higher_teacher] = 0
-            mod_labels[mod_labels.numel()-actual_dim_higher_teacher:] = sigm_obj_source[higher_teacher_idx[0:actual_dim_higher_teacher]]
+            mod_labels[sampled_pos_inds.numel():mod_labels.numel() - actual_dim_higher_teacher] = 0
+            mod_labels[mod_labels.numel() - actual_dim_higher_teacher:] = sigm_obj_source[
+                higher_teacher_idx[0:actual_dim_higher_teacher]]
             mod_labels = mod_labels.to(objectness_target.device)
             return mod_labels, mod_idx
         else:
             mod_idx = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
             return labels[mod_idx], mod_idx
+
 
 # This function should be overwritten in RetinaNet
 def generate_rpn_labels(matched_targets):

@@ -23,10 +23,10 @@ MODEL:
     FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
     PREDICTOR: "FastRCNNPredictor"
     NUM_CLASSES: 16 # total classes : 15 + 1
-    NAME_OLD_CLASSES: []
-    NAME_NEW_CLASSES: ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
-                       "horse", "motorbike", "person"]
-    NAME_EXCLUDED_CLASSES: ["pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    NAME_OLD_CLASSES: [ ]
+    NAME_NEW_CLASSES: [ "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
+                        "horse", "motorbike", "person" ]
+    NAME_EXCLUDED_CLASSES: [ "pottedplant", "sheep", "sofa", "train", "tvmonitor" ]
 DATASETS:
   TRAIN: ("voc_rb_2007_trainval", )
   TEST: ("voc_2007_test",)

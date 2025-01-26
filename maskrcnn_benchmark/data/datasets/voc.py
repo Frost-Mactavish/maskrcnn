@@ -1,12 +1,12 @@
 import os
+import sys
 
+import cv2
+import numpy
+import scipy.io as scio
 import torch
 import torch.utils.data
 from PIL import Image
-import sys
-import scipy.io as scio
-import cv2
-import numpy
 from maskrcnn_benchmark.data.transforms import Compose
 
 if sys.version_info[0] == 2:
@@ -23,7 +23,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True):
@@ -254,10 +255,10 @@ class PascalVOCDataset(torch.utils.data.Dataset):
 
             if exclude_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
             elif self.is_train and old_class_flag:
                 pass
-                #print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
             else:
                 boxes.append(bndbox)
                 gt_classes.append(self.class_to_ind[name])

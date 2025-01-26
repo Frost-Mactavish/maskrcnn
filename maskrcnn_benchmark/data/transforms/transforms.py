@@ -1,14 +1,15 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import random
 
+import cv2
+import numpy
 import torch
 import torchvision
 from torchvision.transforms import functional as F
-import cv2
-import numpy
 
 CATEGORIES = ["__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-              "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+              "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+              "tvmonitor"]
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 
@@ -140,7 +141,7 @@ class ColorJitter(object):
             brightness=brightness,
             contrast=contrast,
             saturation=saturation,
-            hue=hue,)
+            hue=hue, )
 
     def __call__(self, image, target, proposal):
         image = self.color_jitter(image)

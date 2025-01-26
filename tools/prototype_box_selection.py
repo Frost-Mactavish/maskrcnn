@@ -1,26 +1,27 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
+import argparse
+import datetime
+import logging
+import os
+import random
+import time
 from ast import Str
 from email.mime import image
 from sys import setprofile
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 
-import argparse
-import os
-import datetime
-import logging
-import time
+import cv2
+import numpy as np
 import torch
 import torch.distributed as dist
-from torch import nn
-import numpy as np
-import cv2
-from tqdm import tqdm
 from PIL import Image
-
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
-from maskrcnn_benchmark.data.build import make_bbox_loader # import data set
+from maskrcnn_benchmark.data.build import make_bbox_loader  # import data set
+from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
+from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
+# from torch.utils.tensorboard import SummaryWriter
+from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
@@ -28,25 +29,16 @@ from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updatin
 from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
+from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.comm import synchronize, \
     get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-# from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
-import random
-
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
+from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from torch import nn
+from tqdm import tqdm
 
 import warnings
 
@@ -54,26 +46,25 @@ import os
 import pickle
 from tools.extract_memory import Mem
 
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def extract_bboxes_and_features(model_source, data_loader, device, cfg):
-
     old_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES
     new_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
-    
+
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark_last_model.trainer")
     logger.info("Start sampling")
     meters = MetricLogger(delimiter="  ")  # used to record
 
     #################################################################
-	# extract the feature maps for each boxes per classes in images #
-	#################################################################
+    # extract the feature maps for each boxes per classes in images #
+    #################################################################
 
     # Start extracting!
-    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(
+        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     data_iter = iter(data_loader)
     model_source.eval()  # set the source model in inference mode
     start_training_time = time.time()
@@ -97,9 +88,9 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
             (target_scores, _), _, _, _, roi_align_features = \
                 model_source.generate_feature_logits_by_targets(images, targets)
 
-        target_scores.tolist() # [9, 16]
-        roi_align_features = torch.mean(roi_align_features.cpu(), dim=1).tolist() # [9, 1024, 7, 7]
-        
+        target_scores.tolist()  # [9, 16]
+        roi_align_features = torch.mean(roi_align_features.cpu(), dim=1).tolist()  # [9, 1024, 7, 7]
+
         # print(target_scores.shape)
         # time used to do one batch processing
         batch_time = time.time() - end
@@ -110,7 +101,7 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
         for img_n in range(len(idx)):
 
             target = original_targets[img_n]
-            
+
             ######## visulation ########
             # img_id = ids_[img_n][0]
             # img = Image.open("data/voc07/VOCdevkit/VOC2007/JPEGImages/{0}.jpg".format(img_id)).convert("RGB")
@@ -127,21 +118,21 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
 
             for ind in range(target.__len__()):
                 bboxes = target.bbox[ind].cpu().tolist()
-                
-                bbox_index+=1
+
+                bbox_index += 1
                 # Delete too small boxes.
-                if (bboxes[2]-bboxes[0]) <= 70 and (bboxes[3]-bboxes[1]) <= 70:
+                if (bboxes[2] - bboxes[0]) <= 70 and (bboxes[3] - bboxes[1]) <= 70:
                     continue
                 else:
                     # print(len(roi_align_features))
                     # print(bbox_index-1)
-                    all_bboxes_info[target.extra_fields["labels"][ind].item()-len(old_classes) - 1].append(
-                        {'feature': roi_align_features[bbox_index-1], # [1024, 7, 7]
-                        'logits': target_scores[img_n+ind].cpu(), # [16]
-                        'image_path': idx[img_n], # list
-                        'box_class': target.extra_fields["labels"][ind].cpu().item(), # []
-                        'box': bboxes, # []
-                        'mode': target.mode}) # str
+                    all_bboxes_info[target.extra_fields["labels"][ind].item() - len(old_classes) - 1].append(
+                        {'feature': roi_align_features[bbox_index - 1],  # [1024, 7, 7]
+                         'logits': target_scores[img_n + ind].cpu(),  # [16]
+                         'image_path': idx[img_n],  # list
+                         'box_class': target.extra_fields["labels"][ind].cpu().item(),  # []
+                         'box': bboxes,  # []
+                         'mode': target.mode})  # str
 
     # Saving the old bbox and image information through the frozen model
     # Under the default continuous learning settings, all information should not be saved and is only used for debugging！！
@@ -157,6 +148,7 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
 
     return all_bboxes_info
 
+
 def selector(cfg_source, num_gpus):
     current_mem_file = f"{cfg_source.MEM_TYPE}_{cfg_source.MEM_BUFF}"
 
@@ -171,21 +163,21 @@ def selector(cfg_source, num_gpus):
     current_mem_path = os.path.join(cfg_source.OUTPUT_DIR, current_mem_file)
     if not os.path.exists(current_mem_path):
         os.mkdir(current_mem_path)
-    
+
     print('-- PBS REPORT-- The current Box Reahersal path is {0}'.format(current_mem_path))
 
     # Select the prototype box image
     num_file_classes = len(os.listdir(current_mem_path))
 
-    if cfg_source.STEP == 0 and num_file_classes>=int(cfg_source.MEM_BUFF):
+    if cfg_source.STEP == 0 and num_file_classes >= int(cfg_source.MEM_BUFF):
         # The prototype boxes have exsisted for current step!
         print("The prototype box images for first step have existed!!")
         all_bboxes_info = None
-    else: # Update the prototype boxes for current classes
+    else:  # Update the prototype boxes for current classes
         model_source = build_detection_model(cfg_source)  # create the source model
         device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
         model_source.to(device)  # move source model to gpu
-        
+
         arguments_source = {}
         arguments_source["iteration"] = 0
         # path to store the trained parameter value
@@ -203,8 +195,8 @@ def selector(cfg_source, num_gpus):
         all_bboxes_info = extract_bboxes_and_features(model_source, bbox_loader, device, cfg_source)
 
     ##############################################################################
-	# create or update memory
-	##############################################################################
+    # create or update memory
+    ##############################################################################
 
     Exemplar = Mem(cfg_source, cfg_source.STEP, current_mem_path)
     Exemplar.update_memory(all_bboxes_info)
@@ -331,11 +323,14 @@ def main():
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_source.CLS_PER_STEP
-        cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[:(args.step - 1) * cfg_source.CLS_PER_STEP]
+        cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
+                                                          :(args.step - 1) * cfg_source.CLS_PER_STEP]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-        cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[args.step * cfg_source.CLS_PER_STEP:]
+        cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
+                                                              args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
-        cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+        cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(
+                                                                                                                    args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1

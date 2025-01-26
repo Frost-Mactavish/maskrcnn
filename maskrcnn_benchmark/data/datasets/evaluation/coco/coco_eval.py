@@ -1,14 +1,13 @@
 import logging
-import tempfile
 import os
-import torch
+import tempfile
 from collections import OrderedDict
-from tqdm import tqdm
 
+import torch
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-
+from tqdm import tqdm
 
 COCO_CATS = ['__background__', 'airplane', 'apple', 'backpack', 'banana', 'baseball bat', 'baseball glove', 'bear',
              'bed', 'bench', 'bicycle', 'bird', 'boat', 'book', 'bottle', 'bowl', 'broccoli', 'bus', 'cake', 'car',
@@ -26,19 +25,19 @@ coco_ids = {'airplane': 5, 'apple': 53, 'backpack': 27, 'banana': 52,
             'bottle': 44, 'bowl': 51, 'broccoli': 56, 'bus': 6, 'cake': 61,
             'car': 3, 'carrot': 57, 'cat': 17, 'cell phone': 77, 'chair': 62,
             'clock': 85, 'couch': 63, 'cow': 21, 'cup': 47, 'dining table':
-            67, 'dog': 18, 'donut': 60, 'elephant': 22, 'fire hydrant': 11,
+                67, 'dog': 18, 'donut': 60, 'elephant': 22, 'fire hydrant': 11,
             'fork': 48, 'frisbee': 34, 'giraffe': 25, 'hair drier': 89,
             'handbag': 31, 'horse': 19, 'hot dog': 58, 'keyboard': 76, 'kite':
-            38, 'knife': 49, 'laptop': 73, 'microwave': 78, 'motorcycle': 4,
+                38, 'knife': 49, 'laptop': 73, 'microwave': 78, 'motorcycle': 4,
             'mouse': 74, 'orange': 55, 'oven': 79, 'parking meter': 14,
             'person': 1, 'pizza': 59, 'potted plant': 64, 'refrigerator': 82,
             'remote': 75, 'sandwich': 54, 'scissors': 87, 'sheep': 20, 'sink':
-            81, 'skateboard': 41, 'skis': 35, 'snowboard': 36, 'spoon': 50,
+                81, 'skateboard': 41, 'skis': 35, 'snowboard': 36, 'spoon': 50,
             'sports ball': 37, 'stop sign': 13, 'suitcase': 33, 'surfboard':
-            42, 'teddy bear': 88, 'tennis racket': 43, 'tie': 32, 'toaster':
-            80, 'toilet': 70, 'toothbrush': 90, 'traffic light': 10, 'train':
-            7, 'truck': 8, 'tv': 72, 'umbrella': 28, 'vase': 86, 'wine glass':
-            46, 'zebra': 24}
+                42, 'teddy bear': 88, 'tennis racket': 43, 'tie': 32, 'toaster':
+                80, 'toilet': 70, 'toothbrush': 90, 'traffic light': 10, 'train':
+                7, 'truck': 8, 'tv': 72, 'umbrella': 28, 'vase': 86, 'wine glass':
+                46, 'zebra': 24}
 
 coco_ids_to_cats = dict(map(reversed, list(coco_ids.items())))
 
@@ -58,14 +57,14 @@ def convert_category_id_from_to_alphabetical_sequence_to_coco_sequence(index):
 
 
 def do_coco_evaluation(
-    dataset,
-    predictions,
-    box_only,
-    output_folder,
-    iou_types,
-    expected_results,
-    expected_results_sigma_tol,
-    alphabetical_order=False
+        dataset,
+        predictions,
+        box_only,
+        output_folder,
+        iou_types,
+        expected_results,
+        expected_results_sigma_tol,
+        alphabetical_order=False
 ):
     logger = logging.getLogger("maskrcnn_benchmark.inference")
 
@@ -369,7 +368,8 @@ def evaluate_predictions_on_coco(dataset, coco_results, json_result_file, iou_ty
     # print("coco_result: {0}".format(coco_results))
     # print('coco_gt: {0}'.format(coco_gt))
     print('coco_eval.py | json_result_file: {0}'.format(json_result_file))
-    coco_dt = coco_gt.loadRes(str(json_result_file)) if coco_results else COCO()  # load prediction results from the json file
+    coco_dt = coco_gt.loadRes(
+        str(json_result_file)) if coco_results else COCO()  # load prediction results from the json file
     print('coco_eval.py | coco_dt: {0}'.format(coco_dt))
 
     coco_eval = COCOeval(coco_gt, coco_dt, iou_type)  # gt is coco dataset & dt is detection result
@@ -455,8 +455,7 @@ def check_expected_results(results, expected_results, sigma_tol):
             logger.info(msg)
 
 
-if __name__=='__main__':
-
+if __name__ == '__main__':
     cats_to_ids = dict(map(reversed, enumerate(COCO_CATS)))
     ids_to_cats = dict(enumerate(COCO_CATS))
     num_classes = len(COCO_CATS)

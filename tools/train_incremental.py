@@ -1,23 +1,24 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
 import argparse
-import os
 import datetime
 import logging
+import os
+import random
 import time
+
+import cv2
+import numpy as np
 import torch
 import torch.distributed as dist
-from torch import nn
-import numpy as np
-import cv2
-from tqdm import tqdm
 from PIL import Image
-
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import data set
+from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss, \
+    calculate_attentive_roi_feature_distillation
+from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
+from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
@@ -25,29 +26,19 @@ from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updatin
 from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
+from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.comm import synchronize, \
     get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
+from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss, calculate_attentive_roi_feature_distillation
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
-
-import random
-
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
+from tqdm import tqdm
 
 import warnings
-
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -58,7 +49,8 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(
+        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  #
 
     model_target.train()  # set the target model in training mode
@@ -100,7 +92,9 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         # 1. Inclusive distillation loss
         if cfg.DIST.ALPHA > 0:
             source_proposal = None
-            distillation_losses = cfg.DIST.ALPHA * calculate_roi_distillation_losses(soften_result, target_result, dist=dist_type, soften_proposal=source_proposal)
+            distillation_losses = cfg.DIST.ALPHA * calculate_roi_distillation_losses(soften_result, target_result,
+                                                                                     dist=dist_type,
+                                                                                     soften_proposal=source_proposal)
         else:
             distillation_losses = torch.tensor(0.).to(device)
 
@@ -108,17 +102,22 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         if cfg.DIST.FEAT == 'std':
             # Only for ablation study.
             # normalized filtered l1 distillation loss
-            feature_distillation_losses = calculate_feature_distillation_loss(feature_source, feature_target, loss='normalized_filtered_l1')
+            feature_distillation_losses = calculate_feature_distillation_loss(feature_source, feature_target,
+                                                                              loss='normalized_filtered_l1')
             distillation_losses += feature_distillation_losses
         elif cfg.DIST.FEAT == 'ard':
             # Attentive RoI Distillation (ARD) loss
-            feature_distillation_losses = calculate_attentive_roi_feature_distillation(roi_align_features_source, roi_align_features_target, gamma=cfg.DIST.GAMMA)
+            feature_distillation_losses = calculate_attentive_roi_feature_distillation(roi_align_features_source,
+                                                                                       roi_align_features_target,
+                                                                                       gamma=cfg.DIST.GAMMA)
             distillation_losses += cfg.DIST.BETA * feature_distillation_losses
-        
+
         # 3. RPN distillation loss
         # Only for ablation study.
         if cfg.DIST.RPN:
-            rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss='filtered_l2', bbox_loss='l2', bbox_threshold=0.1)
+            rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target,
+                                                                      cls_loss='filtered_l2', bbox_loss='l2',
+                                                                      bbox_threshold=0.1)
             distillation_losses += rpn_distillation_losses
 
         distillation_dict = {}
@@ -141,8 +140,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         optimizer.zero_grad()  # clear the gradient cache
         # If mixed precision is not used, this ends up doing nothing, otherwise apply loss scaling for mixed-precision recipe.
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()  # use back-propagation to update the gradient
+        losses.backward()  # use back-propagation to update the gradient
         optimizer.step()  # update learning rate
         scheduler.step()  # update the learning rate
 
@@ -156,7 +154,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         # for every 100 iterations, display the training status
         if iteration % 100 == 0 or iteration == max_iter:
             logger.info(
-                meters.delimiter.join(["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"]).format(eta=eta_string, iter=iteration, meters=str(meters), lr=optimizer.param_groups[0]["lr"], memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
+                meters.delimiter.join(
+                    ["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"]).format(
+                    eta=eta_string, iter=iteration, meters=str(meters), lr=optimizer.param_groups[0]["lr"],
+                    memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
             # write to tensorboardX
             loss_global_avg = meters.loss.global_avg
             loss_median = meters.loss.median
@@ -189,11 +190,6 @@ def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_ra
     model_source.to(device)  # move source model to gpu
     optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
     scheduler = make_lr_scheduler(cfg_target, optimizer)  # config learning rate
-
-    # initialize mixed-precision training
-    use_mixed_precision = cfg_target.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model_target, optimizer = amp.initialize(model_target, optimizer, opt_level=amp_opt_level)
 
     # create a parameter dictionary and initialize the iteration number to 0
     arguments_target = {}
@@ -235,7 +231,8 @@ def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_ra
         )
 
     # load training data
-    data_loader = make_data_loader(cfg_target, is_train=True, is_distributed=distributed, start_iter=arguments_target["iteration"], num_gpus=num_gpus, rank=get_rank())
+    data_loader = make_data_loader(cfg_target, is_train=True, is_distributed=distributed,
+                                   start_iter=arguments_target["iteration"], num_gpus=num_gpus, rank=get_rank())
     print('Finish loading data')
     # number of iteration to store parameter value in pth file
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
@@ -313,6 +310,7 @@ def test(cfg):
                 fid.write(",".join([str(x) for x in result['box']]))
                 fid.write("\n")
 
+
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
@@ -334,7 +332,7 @@ def main():
     parser.add_argument(
         "--feat",
         default="no",
-        type=str, 
+        type=str,
         choices=['no', 'std', 'ard']
     )
     parser.add_argument(
@@ -360,7 +358,7 @@ def main():
     parser.add_argument(
         "--dist_type",
         default="l2",
-        type=str, 
+        type=str,
         choices=['l2', 'id', 'none']
     )
     parser.add_argument(
@@ -392,15 +390,15 @@ def main():
     )
 
     args = parser.parse_args()
-    
+
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_visible_devices
-    
+
     if args.memory_type is None:
         # Finetuning without memory_type.
         target_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x_Target_model.yaml"
     else:
         target_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x_RB_Target_model.yaml"
-    
+
     full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
 
     torch.cuda.set_device(args.local_rank)
@@ -446,11 +444,14 @@ def main():
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
         print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
-        cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[:(args.step - 1) * cfg_target.CLS_PER_STEP]
+        cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
+                                                          :(args.step - 1) * cfg_target.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-        cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[args.step * cfg_source.CLS_PER_STEP:]
+        cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
+                                                              args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
-        cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+        cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(
+                                                                                                                    args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
 
     cfg_target.DIST.FEAT = args.feat

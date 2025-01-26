@@ -1,12 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
 import torch.nn.functional as F
-from torch import nn
-
+from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_nms
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
-from maskrcnn_benchmark.modeling.box_coder import BoxCoder
+from torch import nn
 
 
 class PostProcessor(nn.Module):
@@ -17,12 +16,12 @@ class PostProcessor(nn.Module):
     """
 
     def __init__(
-        self,
-        score_thresh=0.05,
-        nms=0.5,
-        detections_per_img=100,
-        box_coder=None,
-        cls_agnostic_bbox_reg=False
+            self,
+            score_thresh=0.05,
+            nms=0.5,
+            detections_per_img=100,
+            box_coder=None,
+            cls_agnostic_bbox_reg=False
     ):
         """
         Arguments:
@@ -75,7 +74,7 @@ class PostProcessor(nn.Module):
 
         results = []
         for prob, boxes_per_img, image_shape in zip(
-            class_prob, proposals, image_shapes
+                class_prob, proposals, image_shapes
         ):
             boxlist = self.prepare_boxlist(boxes_per_img, prob, image_shape)
             boxlist = boxlist.clip_to_image(remove_empty=False)
@@ -119,7 +118,7 @@ class PostProcessor(nn.Module):
         for j in range(0, num_classes):
             inds = inds_all[:, j].nonzero().squeeze(1)
             scores_j = scores[inds, j]
-            boxes_j = boxes[inds, j * 4 : (j + 1) * 4]
+            boxes_j = boxes[inds, j * 4: (j + 1) * 4]
             boxlist_for_class = BoxList(boxes_j, boxlist.size, mode="xyxy")
             boxlist_for_class.add_field("scores", scores_j)
             boxlist_for_class = boxlist_nms(

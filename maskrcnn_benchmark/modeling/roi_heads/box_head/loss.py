@@ -1,15 +1,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-from torch.nn import functional as F
-
 from maskrcnn_benchmark.layers import smooth_l1_loss
-from maskrcnn_benchmark.modeling.box_coder import BoxCoder
-from maskrcnn_benchmark.modeling.matcher import Matcher
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import (
     BalancedPositiveNegativeSampler
 )
+from maskrcnn_benchmark.modeling.box_coder import BoxCoder
+from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.modeling.utils import cat
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from torch.nn import functional as F
 
 
 class FastRCNNLossComputation(object):
@@ -19,13 +18,13 @@ class FastRCNNLossComputation(object):
     """
 
     def __init__(
-        self, 
-        proposal_matcher, 
-        fg_bg_sampler, 
-        box_coder, 
-        cls_agnostic_bbox_reg=False,
-        dist_type=None,
-        old_classes=[]
+            self,
+            proposal_matcher,
+            fg_bg_sampler,
+            box_coder,
+            cls_agnostic_bbox_reg=False,
+            dist_type=None,
+            old_classes=[]
     ):
         """
         Arguments:
@@ -100,7 +99,7 @@ class FastRCNNLossComputation(object):
         proposals = list(proposals)
         # add corresponding label and regression_targets information to the bounding boxes
         for labels_per_image, regression_targets_per_image, proposals_per_image in zip(
-            labels, regression_targets, proposals
+                labels, regression_targets, proposals
         ):
             proposals_per_image.add_field("labels", labels_per_image)
             proposals_per_image.add_field(
@@ -110,7 +109,7 @@ class FastRCNNLossComputation(object):
         # distributed sampled proposals, that were obtained on all feature maps
         # concatenated via the fg_bg_sampler, into individual feature map levels
         for img_idx, (pos_inds_img, neg_inds_img) in enumerate(
-            zip(sampled_pos_inds, sampled_neg_inds)
+                zip(sampled_pos_inds, sampled_neg_inds)
         ):
             img_sampled_inds = torch.nonzero(pos_inds_img | neg_inds_img).squeeze(1)
             proposals_per_image = proposals[img_idx][img_sampled_inds]
@@ -148,14 +147,14 @@ class FastRCNNLossComputation(object):
             [proposal.get_field("regression_targets") for proposal in proposals], dim=0
         )
 
-        if self.dist_type=='id':
+        if self.dist_type == 'id':
             # Inclusive Classification Loss
             outputs = torch.zeros_like(class_logits)
             den = torch.logsumexp(class_logits, dim=1)  # B, H, W       den of softmax
-            outputs[:, 0] = torch.logsumexp(class_logits[:, 0:self.n_old_cl+1], dim=1) -den
-            outputs[:, self.n_old_cl+1:] = class_logits[:, self.n_old_cl+1:] - den.unsqueeze(dim=1)
+            outputs[:, 0] = torch.logsumexp(class_logits[:, 0:self.n_old_cl + 1], dim=1) - den
+            outputs[:, self.n_old_cl + 1:] = class_logits[:, self.n_old_cl + 1:] - den.unsqueeze(dim=1)
             labels = labels.clone()
-    
+
             classification_loss = F.nll_loss(outputs, labels)
 
         else:
@@ -198,9 +197,9 @@ def make_roi_box_loss_evaluator(cfg):
     cls_agnostic_bbox_reg = cfg.MODEL.CLS_AGNOSTIC_BBOX_REG
 
     loss_evaluator = FastRCNNLossComputation(
-        matcher, 
-        fg_bg_sampler, 
-        box_coder, 
+        matcher,
+        fg_bg_sampler,
+        box_coder,
         cls_agnostic_bbox_reg,
         cfg.DIST.TYPE,
         cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES

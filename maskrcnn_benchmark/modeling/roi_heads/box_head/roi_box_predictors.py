@@ -1,7 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+import torch
 from maskrcnn_benchmark.modeling import registry
 from torch import nn
-import torch
 
 
 @registry.ROI_BOX_PREDICTOR.register("FastRCNNPredictor")
@@ -62,7 +62,8 @@ class FPNPredictor(nn.Module):
 
         num_bbox_reg_classes = 2 if cfg.MODEL.CLS_AGNOSTIC_BBOX_REG else num_classes
         if self.bbox_pred_offset_flag:
-            print('roi_box_predictors.py | add offset layer (FC layer) to ROI sub-network bounding box regression layer')
+            print(
+                'roi_box_predictors.py | add offset layer (FC layer) to ROI sub-network bounding box regression layer')
             self.bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
             self.bbox_pred_offset_weight = nn.Parameter(torch.ones(1, 4))
             self.bbox_pred_offset_bias = nn.Parameter(torch.zeros(1, 4))
@@ -105,7 +106,8 @@ class FPNPredictor(nn.Module):
             # print('roi_box_predictors.py | size of score : {0}'.format(scores.size()))
             buff = self.cls_score(x)[:, self.num_old_classes:]
             # print('roi_box_predictors.py | size of buff : {0}'.format(buff.size()))
-            scores[:, self.num_old_classes:] = torch.mul(buff, self.cls_score_offset_weight) + self.cls_score_offset_bias
+            scores[:, self.num_old_classes:] = torch.mul(buff,
+                                                         self.cls_score_offset_weight) + self.cls_score_offset_bias
             # print('roi_box_predictors.py | size of scores : {0}'.format(scores.size()))
         else:
             scores = self.cls_score(x)
@@ -115,7 +117,8 @@ class FPNPredictor(nn.Module):
             # print('roi_box_predictors.py | size of bbox_deltas : {0}'.format(bbox_deltas.size()))
             buff = self.bbox_pred(x)[:, self.num_old_classes * 4:]
             # print('roi_box_predictors.py | size of buff : {0}'.format(buff.size()))
-            bbox_deltas[:, self.num_old_classes * 4:] = torch.mul(buff, self.bbox_pred_offset_weight) + self.bbox_pred_offset_bias
+            bbox_deltas[:, self.num_old_classes * 4:] = torch.mul(buff,
+                                                                  self.bbox_pred_offset_weight) + self.bbox_pred_offset_bias
             # print('roi_box_predictors.py | size of bbox_deltas : {0}'.format(bbox_deltas.size()))
         else:
             bbox_deltas = self.bbox_pred(x)
