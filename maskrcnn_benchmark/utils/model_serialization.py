@@ -1,10 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 
 import torch
-
-from maskrcnn_benchmark.utils.imports import import_file
 
 
 def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
@@ -56,7 +54,8 @@ def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
             print('model_serialization.py | after loading, new | value of {0}: {1}'.format(key, model_state_dict[key]))
 
         # used for logging
-        logger.info(log_str_template.format(key, max_size, key_old, max_size_loaded, tuple(loaded_state_dict[key_old].shape)))
+        logger.info(
+            log_str_template.format(key, max_size, key_old, max_size_loaded, tuple(loaded_state_dict[key_old].shape)))
 
 
 def strip_prefix_if_present(state_dict, prefix):

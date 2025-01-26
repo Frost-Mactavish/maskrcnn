@@ -10,7 +10,6 @@ import pycocotools.mask as mask_utils
 FLIP_LEFT_RIGHT = 0
 FLIP_TOP_BOTTOM = 1
 
-
 """ ABSTRACT
 Segmentations come in either:
 1) Binary masks
@@ -438,7 +437,6 @@ class PolygonList(object):
 
 
 class SegmentationMask(object):
-
     """
     This class stores the segmentations for all objects in the image.
     It wraps BinaryMaskList and PolygonList conveniently.

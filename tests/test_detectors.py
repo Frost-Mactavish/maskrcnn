@@ -1,14 +1,15 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 
-import unittest
+import copy
 import glob
 import os
-import copy
+import unittest
+
 import torch
+
+import utils
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.structures.image_list import to_image_list
-import utils
-
 
 CONFIG_FILES = [
     # bbox
@@ -29,7 +30,7 @@ CONFIG_FILES = [
     "gn_baselines/e2e_faster_rcnn_R_50_FPN_1x_gn.yaml",
     # TODO: fail to run for random model due to empty head input
     # "gn_baselines/e2e_mask_rcnn_R_50_FPN_Xconv1fc_1x_gn.yaml",
-	
+
     # retinanet
     "retinanet/retinanet_R-50-FPN_1x.yaml",
 
@@ -44,7 +45,6 @@ EXCLUDED_FOLDERS = [
     "pascal_voc",
     "cityscapes",
 ]
-
 
 TEST_CUDA = torch.cuda.is_available()
 

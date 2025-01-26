@@ -1,14 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 
-import unittest
 import copy
+import unittest
+
 import torch
-# import modules to to register feature extractors
-from maskrcnn_benchmark.modeling.backbone import build_backbone # NoQA
-from maskrcnn_benchmark.modeling.roi_heads.roi_heads import build_roi_heads # NoQA
-from maskrcnn_benchmark.modeling import registry
-from maskrcnn_benchmark.structures.bounding_box import BoxList
+
 from maskrcnn_benchmark.config import cfg as g_cfg
+from maskrcnn_benchmark.modeling import registry
+# import modules to to register feature extractors
+from maskrcnn_benchmark.modeling.backbone import build_backbone  # NoQA
+from maskrcnn_benchmark.modeling.roi_heads.roi_heads import build_roi_heads  # NoQA
+from maskrcnn_benchmark.structures.bounding_box import BoxList
 from utils import load_config
 
 # overwrite configs if specified, otherwise default config is used
@@ -23,7 +25,7 @@ FEATURE_EXTRACTORS_INPUT_CHANNELS = {
 
 
 def _test_feature_extractors(
-    self, extractors, overwrite_cfgs, overwrite_in_channels
+        self, extractors, overwrite_cfgs, overwrite_in_channels
 ):
     ''' Make sure roi box feature extractors run '''
 

@@ -1,5 +1,4 @@
 import math
-
 import torch
 import torch.nn as nn
 from torch.nn.modules.utils import _pair
@@ -10,16 +9,16 @@ from .deform_conv_func import deform_conv, modulated_deform_conv
 class DeformConv(nn.Module):
 
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
-        bias=False
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
+            bias=False
     ):
         assert not bias
         super(DeformConv, self).__init__()
@@ -76,16 +75,16 @@ class DeformConv(nn.Module):
 class ModulatedDeformConv(nn.Module):
 
     def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        deformable_groups=1,
-        bias=True
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=1,
+            padding=0,
+            dilation=1,
+            groups=1,
+            deformable_groups=1,
+            bias=True
     ):
         super(ModulatedDeformConv, self).__init__()
         self.in_channels = in_channels
@@ -99,7 +98,7 @@ class ModulatedDeformConv(nn.Module):
         self.with_bias = bias
 
         self.weight = nn.Parameter(torch.Tensor(
-            out_channels, 
+            out_channels,
             in_channels // groups,
             *self.kernel_size
         ))
@@ -136,6 +135,7 @@ class ModulatedDeformConv(nn.Module):
             "deformable_groups={}, ".format(self.deformable_groups),
             "bias={})".format(self.with_bias),
         ])
+
 
 class ModulatedDeformConvPack(ModulatedDeformConv):
 

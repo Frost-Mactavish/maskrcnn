@@ -1,21 +1,19 @@
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-
-import argparse
-import os
 import datetime
 import logging
+import os
 import time
-import torch
-import torch.distributed as dist
-from torch import nn
-import numpy as np
-import cv2
-from PIL import Image
 
-from maskrcnn_benchmark.config import cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
+import torch
+from tensorboardX import SummaryWriter
+
+from maskrcnn_benchmark.config import \
+    cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import data set
+from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
+from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
+from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
 from maskrcnn_benchmark.engine.inference import inference  # inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
@@ -23,36 +21,22 @@ from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updatin
 from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import synchronize, get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.comm import synchronize, \
+    get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from tensorboardX import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
-
-# See if we can use apex.DistributedDataParallel instead of the torch default,
-# and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
-
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning)
+from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 
 
 def do_train(model_source, model_target, data_loader, optimizer, scheduler, checkpointer_source, checkpointer_target,
              device, checkpoint_period, arguments_source, arguments_target, summary_writer):
-
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(
+        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  # 0
     model_target.train()  # set the target model in training mode
     model_source.eval()  # set the source model in inference mode
@@ -68,20 +52,24 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         arguments_target["iteration"] = iteration
         scheduler.step()  # update the learning rate
 
-        images = images.to(device)   # move images to the device
+        images = images.to(device)  # move images to the device
         targets = [target.to(device) for target in targets]  # move targets (labels) to the device
 
-        loss_dict_target, feature_target, backbone_feature_target, anchor_target, rpn_output_target = model_target(images, targets)
+        loss_dict_target, feature_target, backbone_feature_target, anchor_target, rpn_output_target = model_target(
+            images, targets)
         faster_rcnn_losses = sum(loss for loss in loss_dict_target.values())  # summarise the losses for faster rcnn
 
         roi_distillation_losses, rpn_output_source, feature_source, backbone_feature_source, soften_result, soften_proposal, feature_proposals \
             = calculate_roi_distillation_losses(model_source, model_target, images)
         # print('roi_distillation_losses: {0}'.format(roi_distillation_losses))
-    
-        rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss='filtered_l2', bbox_loss='l2', bbox_threshold=0.1)
+
+        rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target,
+                                                                  cls_loss='filtered_l2', bbox_loss='l2',
+                                                                  bbox_threshold=0.1)
         # print('rpn_distillation_loss: {0}'.format(rpn_distillation_losses))
-       
-        feature_distillation_losses = calculate_feature_distillation_loss(feature_source, feature_target, loss='normalized_filtered_l1')
+
+        feature_distillation_losses = calculate_feature_distillation_loss(feature_source, feature_target,
+                                                                          loss='normalized_filtered_l1')
         # print('feature_distillation_loss: {0}'.format(feature_distillation_losses))
 
         distillation_losses = roi_distillation_losses + rpn_distillation_losses + feature_distillation_losses
@@ -102,15 +90,14 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         if (iteration - 1) > 0:
             average_distillation_loss = (average_distillation_loss * (iteration - 1) + distillation_losses) / iteration
-            average_faster_rcnn_loss = (average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses) /iteration
+            average_faster_rcnn_loss = (average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses) / iteration
         else:
             average_distillation_loss = distillation_losses
             average_faster_rcnn_loss = faster_rcnn_losses
 
         optimizer.zero_grad()  # clear the gradient cache
         # If mixed precision is not used, this ends up doing nothing, otherwise apply loss scaling for mixed-precision recipe.
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()  # use back-propagation to update the gradient
+        losses.backward()  # use back-propagation to update the gradient
         optimizer.step()  # update learning rate
 
         # time used to do one batch processing
@@ -127,7 +114,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
                 meters.delimiter.join(["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"
                                        ]).format(eta=eta_string, iter=iteration, meters=str(meters),
                                                  lr=optimizer.param_groups[0]["lr"],
-                                                 memory=torch.cuda.max_memory_allocated()/1024.0/1024.0))
+                                                 memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
             # write to tensorboardX
             loss_global_avg = meters.loss.global_avg
             loss_median = meters.loss.median
@@ -148,11 +135,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     # Display the total used training time
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
-    logger.info("Total training time: {} ({:.4f} s / it)".format(total_time_str, total_training_time/max_iter))
+    logger.info("Total training time: {} ({:.4f} s / it)".format(total_time_str, total_training_time / max_iter))
 
 
 def train(cfg_source, logger_source, cfg_target, logger_target, distributed):
-
     model_source = build_detection_model(cfg_source)  # create the source model
     model_target = build_detection_model(cfg_target)  # create the target model
     device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
@@ -160,10 +146,6 @@ def train(cfg_source, logger_source, cfg_target, logger_target, distributed):
     model_source.to(device)  # move source model to gpu
     optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
     scheduler = make_lr_scheduler(cfg_target, optimizer)  # config learning rate
-    # initialize mixed-precision training
-    use_mixed_precision = cfg_target.DTYPE == "float16"
-    amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model_target, optimizer = amp.initialize(model_target, optimizer, opt_level=amp_opt_level)
     # create a parameter dictionary and initialize the iteration number to 0
     arguments_target = {}
     arguments_target["iteration"] = 0
@@ -177,11 +159,13 @@ def train(cfg_source, logger_source, cfg_target, logger_target, distributed):
     # when only use 1 gpu, get_rank() returns 0
     save_to_disk = get_rank() == 0
     # create check pointer for source model & load the pre-trained model parameter to source model
-    checkpointer_source = DetectronCheckpointer(cfg_source, model_source, optimizer=None, scheduler=None, save_dir=output_dir_source,
+    checkpointer_source = DetectronCheckpointer(cfg_source, model_source, optimizer=None, scheduler=None,
+                                                save_dir=output_dir_source,
                                                 save_to_disk=save_to_disk, logger=logger_source)
     extra_checkpoint_data_source = checkpointer_source.load(cfg_source.MODEL.WEIGHT)
     # create check pointer for target model & load the pre-trained model parameter to target model
-    checkpointer_target = DetectronCheckpointer(cfg_target, model_target, optimizer=optimizer, scheduler=scheduler, save_dir=output_dir_target,
+    checkpointer_target = DetectronCheckpointer(cfg_target, model_target, optimizer=optimizer, scheduler=scheduler,
+                                                save_dir=output_dir_target,
                                                 save_to_disk=save_to_disk, logger=logger_target)
     extra_checkpoint_data_target = checkpointer_target.load(cfg_target.MODEL.WEIGHT)
     # dict updating method to update the parameter dictionary for source model
@@ -190,7 +174,8 @@ def train(cfg_source, logger_source, cfg_target, logger_target, distributed):
     arguments_target.update(extra_checkpoint_data_target)
     print('start iteration: {0}'.format(arguments_target["iteration"]))
     # load training data
-    data_loader = make_data_loader(cfg_target, is_train=True, is_distributed=distributed, start_iter=arguments_target["iteration"])
+    data_loader = make_data_loader(cfg_target, is_train=True, is_distributed=distributed,
+                                   start_iter=arguments_target["iteration"])
     print('finish loading data')
     # number of iteration to store parameter value in pth file
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
@@ -203,7 +188,6 @@ def train(cfg_source, logger_source, cfg_target, logger_target, distributed):
 
 
 def test(cfg_target, model, distributed):
-
     if distributed:  # whether use multiple gpu to train
         model = model.module
     # Release unoccupied memory
@@ -304,4 +288,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

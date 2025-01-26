@@ -1,12 +1,10 @@
 import os
+import sys
 
+import scipy.io as scio
 import torch
 import torch.utils.data
 from PIL import Image
-import sys
-import scipy.io as scio
-import cv2
-import numpy
 
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
@@ -22,7 +20,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
     """
     CLASSES = ("__background__ ", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
-               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+               "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train",
+               "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True):
@@ -92,7 +91,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                 else:
                     img_per_categories.append(b[0])
                     self.ids.append(b[0])
-            print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | number of images in {0}_{1}: {2}'.format(category, self.image_set, len(img_per_categories)))
+            print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | number of images in {0}_{1}: {2}'.format(
+                category, self.image_set, len(img_per_categories)))
 
         # check for image ids repeating
         self.final_ids = []
@@ -104,7 +104,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                     break
             if not repeat_flag:
                 self.final_ids.append(id)
-        print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+        print(
+            'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
@@ -133,7 +135,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                 else:
                     img_ids_per_category.append(x[0])
                     self.ids.append(x[0])
-            print('voc.py | load_img_from_NEW_cls_without_old_data | number of images in {0}_{1} set: {2}'.format(incremental, self.image_set, len(img_ids_per_category)))
+            print('voc.py | load_img_from_NEW_cls_without_old_data | number of images in {0}_{1} set: {2}'.format(
+                incremental, self.image_set, len(img_ids_per_category)))
 
             # check for image ids repeating
             self.final_ids = []
@@ -145,7 +148,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                         break
                 if not repeat_flag:
                     self.final_ids.append(id)
-            print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+            print(
+                'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                    self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}

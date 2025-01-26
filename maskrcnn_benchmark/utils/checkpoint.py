@@ -4,21 +4,21 @@ import os
 
 import torch
 
-from maskrcnn_benchmark.utils.model_serialization import load_state_dict
 from maskrcnn_benchmark.utils.c2_model_loading import load_c2_format
 from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.model_serialization import load_state_dict
 from maskrcnn_benchmark.utils.model_zoo import cache_url
 
 
 class Checkpointer(object):
     def __init__(
-        self,
-        model,
-        optimizer=None,
-        scheduler=None,
-        save_dir="",
-        save_to_disk=None,
-        logger=None,
+            self,
+            model,
+            optimizer=None,
+            scheduler=None,
+            save_dir="",
+            save_to_disk=None,
+            logger=None,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -64,7 +64,6 @@ class Checkpointer(object):
             self.logger.info("Loading optimizer from {}".format(f))
             self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
         if "scheduler" in checkpoint and self.scheduler:
-
             self.logger.info("Loading scheduler from {}".format(f))
             self.scheduler.load_state_dict(checkpoint.pop("scheduler"))
 
@@ -101,14 +100,14 @@ class Checkpointer(object):
 
 class DetectronCheckpointer(Checkpointer):
     def __init__(
-        self,
-        cfg,
-        model,
-        optimizer=None,
-        scheduler=None,
-        save_dir="",
-        save_to_disk=None,
-        logger=None,
+            self,
+            cfg,
+            model,
+            optimizer=None,
+            scheduler=None,
+            save_dir="",
+            save_to_disk=None,
+            logger=None,
     ):
         super(DetectronCheckpointer, self).__init__(
             model, optimizer, scheduler, save_dir, save_to_disk, logger
@@ -121,7 +120,7 @@ class DetectronCheckpointer(Checkpointer):
             paths_catalog = import_file(
                 "maskrcnn_benchmark.config.paths_catalog", self.cfg.PATHS_CATALOG, True
             )
-            catalog_f = paths_catalog.ModelCatalog.get(f[len("catalog://") :])
+            catalog_f = paths_catalog.ModelCatalog.get(f[len("catalog://"):])
             self.logger.info("{} points to {}".format(f, catalog_f))
             f = catalog_f
         # download url files

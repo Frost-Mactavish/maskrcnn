@@ -1,8 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 
-import unittest
 import glob
 import os
+import unittest
+
 import utils
 
 

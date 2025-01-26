@@ -1,14 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import copy
+import os
+
+import env_tests.env as env_tests
+from maskrcnn_benchmark.config import cfg as g_cfg
 # Set up custom environment before nearly anything else is imported
 # NOTE: this should be the first import (no not reorder)
 from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-import env_tests.env as env_tests
-
-import os
-import copy
-
-from maskrcnn_benchmark.config import cfg as g_cfg
 
 
 def get_config_root_path():

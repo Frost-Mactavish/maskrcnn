@@ -1,6 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import unittest
+
 import torch
+
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 
 
@@ -11,8 +13,8 @@ class TestSegmentationMask(unittest.TestCase):
                   387.5, 292.0, 384.5, 295.0, 374.5, 220.0, 378.5, 210.0,
                   391.0, 200.5, 404.0, 199.5, 414.0, 203.5, 425.5, 221.0,
                   438.5, 297.0, 423.0, 306.5],
-                 [100, 100,     200, 100,     200, 200,     100, 200],
-                ]]
+                 [100, 100, 200, 100, 200, 200, 100, 200],
+                 ]]
         width = 640
         height = 480
         size = width, height
@@ -36,7 +38,7 @@ class TestSegmentationMask(unittest.TestCase):
         self.assertTrue(diff_poly <= 8169.)
 
     def test_crop(self):
-        box = [400, 250, 500, 300] # xyxy
+        box = [400, 250, 500, 300]  # xyxy
         diff = self.L1(self.M.crop(box), self.P.crop(box))
         self.assertTrue(diff <= 1.)
 
@@ -65,5 +67,4 @@ class TestSegmentationMask(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

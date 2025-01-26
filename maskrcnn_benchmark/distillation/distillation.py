@@ -12,8 +12,8 @@ from maskrcnn_benchmark.modeling.rpn.utils import permute_and_flatten
 from maskrcnn_benchmark.layers import smooth_l1_loss
 
 
-def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss=None, bbox_loss=None, bbox_threshold=None):
-
+def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss=None, bbox_loss=None,
+                                    bbox_threshold=None):
     rpn_objectness_source, rpn_bbox_regression_source = rpn_output_source
     rpn_objectness_target, rpn_bbox_regression_target = rpn_output_target
 
@@ -74,7 +74,7 @@ def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_lo
                 raise ValueError("Wrong loss function for rpn classification distillation")
     else:
         raise ValueError("Wrong rpn objectness output")
-    final_rpn_cls_distillation_loss = sum(final_rpn_cls_distillation_loss)/num_source_rpn_objectness
+    final_rpn_cls_distillation_loss = sum(final_rpn_cls_distillation_loss) / num_source_rpn_objectness
 
     # calculate rpn bounding box regression loss
     num_source_rpn_bbox = len(rpn_bbox_regression_source)
@@ -87,7 +87,8 @@ def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_lo
             current_source_rpn_bbox = rpn_bbox_regression_source[i]
             current_target_rpn_bbox = rpn_bbox_regression_target[i]
             current_objectness_difference = objectness_difference[i]
-            [N, A, H, W] = current_objectness_difference.size()  # second dimention contains location shifting information for each anchor
+            [N, A, H,
+             W] = current_objectness_difference.size()  # second dimention contains location shifting information for each anchor
             current_objectness_difference = permute_and_flatten(current_objectness_difference, N, A, 1, H, W)
             current_source_rpn_bbox = permute_and_flatten(current_source_rpn_bbox, N, A, 4, H, W)
             current_target_rpn_bbox = permute_and_flatten(current_target_rpn_bbox, N, A, 4, H, W)
@@ -98,17 +99,19 @@ def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_lo
             masked_target_rpn_bbox = current_target_rpn_bbox * current_objectness_mask
             if bbox_loss == 'l2':
                 current_bbox_distillation_loss = l2_loss(masked_source_rpn_bbox, masked_target_rpn_bbox)
-                final_rpn_bbs_distillation_loss.append(torch.mean(torch.mean(torch.sum(current_bbox_distillation_loss, dim=2), dim=1), dim=0))
+                final_rpn_bbs_distillation_loss.append(
+                    torch.mean(torch.mean(torch.sum(current_bbox_distillation_loss, dim=2), dim=1), dim=0))
             elif bbox_loss == 'l1':
                 current_bbox_distillation_loss = torch.abs(masked_source_rpn_bbox - masked_source_rpn_bbox)
-                final_rpn_bbs_distillation_loss.append(torch.mean(torch.mean(torch.sum(current_bbox_distillation_loss, dim=2), dim=1), dim=0))
+                final_rpn_bbs_distillation_loss.append(
+                    torch.mean(torch.mean(torch.sum(current_bbox_distillation_loss, dim=2), dim=1), dim=0))
             elif bbox_loss == 'None':
                 final_rpn_bbs_distillation_loss.append(0)
             else:
                 raise ValueError('Wrong loss function for rpn bounding box regression distillation')
     else:
         raise ValueError('Wrong RPN bounding box regression output')
-    final_rpn_bbs_distillation_loss = sum(final_rpn_bbs_distillation_loss)/num_source_rpn_bbox
+    final_rpn_bbs_distillation_loss = sum(final_rpn_bbs_distillation_loss) / num_source_rpn_bbox
 
     final_rpn_loss = final_rpn_cls_distillation_loss + final_rpn_bbs_distillation_loss
     final_rpn_loss.to('cuda')
@@ -172,7 +175,6 @@ def calculate_feature_distillation_loss(source_features, target_features, loss=N
 
 
 def calculate_roi_distillation_losses(model_source, model_target, images):
-
     # --- calculate roi-subnet classification and bbox regression distillation loss ---
     # do test on the pre-trained frozen source model to get the soften label
     soften_result, soften_proposal, feature_source, backbone_feature_source, anchor_source, rpn_output_source, feature_proposals = \
@@ -181,10 +183,7 @@ def calculate_roi_distillation_losses(model_source, model_target, images):
     # use soften proposal and soften result to calculate distillation loss
     # 'num_of_distillation_categories' = number of categories for source model including background
     roi_distillation_losses = model_target.calculate_roi_distillation_loss(
-        images, soften_proposal, soften_result, cls_preprocess='normalization', cls_loss='l2', bbs_loss='l2', temperature=1)
+        images, soften_proposal, soften_result, cls_preprocess='normalization', cls_loss='l2', bbs_loss='l2',
+        temperature=1)
 
     return roi_distillation_losses, rpn_output_source, feature_source, backbone_feature_source, soften_result, soften_proposal, feature_proposals
-
-
-
-

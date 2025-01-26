@@ -1,25 +1,32 @@
-### Paper 
-1 [mask-rcnn](https://arxiv.org/pdf/1703.06870.pdf)  
+### Paper
 
+1 [mask-rcnn](https://arxiv.org/pdf/1703.06870.pdf)
 
 ### dataset
-1 [cityscapesScripts](https://github.com/mcordts/cityscapesScripts)  
 
+1 [cityscapesScripts](https://github.com/mcordts/cityscapesScripts)
 
 ### Performance (from paper)
-|      case    | training data | im/gpu | mask AP[val] | mask AP [test] | mask AP50 [test] |
-|--------------|:-------------:|:------:|:------------:|:--------------:|-----------------:|
-|   R-50-FPN   | fine          |   8/8  |    31.5      | 26.2           | 49.9             |
-|   R-50-FPN   | fine + COCO   |   8/8  |    36.4      | 32.0           | 58.1             |
 
+| case     | training data | im/gpu | mask AP[val] | mask AP [test] | mask AP50 [test] |
+|----------|:-------------:|:------:|:------------:|:--------------:|-----------------:|
+| R-50-FPN |     fine      |  8/8   |     31.5     |      26.2      |             49.9 |
+| R-50-FPN |  fine + COCO  |  8/8   |     36.4     |      32.0      |             58.1 |
 
 ### Note (from paper)
-We apply our Mask R-CNN models with the ResNet-FPN-50 backbone; we found the 101-layer counterpart performs similarly due to the small dataset size. We train with image scale (shorter side) randomly sampled from [800, 1024], which reduces overfitting; inference is on a single scale of 1024 pixels. We use a mini-batch size of 1 image per GPU (so 8 on 8 GPUs) and train the model for 24k iterations, starting from a learning rate of 0.01 and reducing it to 0.001 at 18k iterations. It takes ∼4 hours of training on a single 8-GPU machine under this setting.  
 
+We apply our Mask R-CNN models with the ResNet-FPN-50 backbone; we found the 101-layer counterpart performs similarly
+due to the small dataset size. We train with image scale (shorter side) randomly sampled from [800, 1024], which reduces
+overfitting; inference is on a single scale of 1024 pixels. We use a mini-batch size of 1 image per GPU (so 8 on 8 GPUs)
+and train the model for 24k iterations, starting from a learning rate of 0.01 and reducing it to 0.001 at 18k
+iterations. It takes ∼4 hours of training on a single 8-GPU machine under this setting.
 
 ### Implemetation (for finetuning from coco trained model)
-Step 1: download trained model on coco dataset from [model zoo](https://download.pytorch.org/models/maskrcnn/e2e_mask_rcnn_R_50_FPN_1x.pth)  
-Step 2: do the model surgery on the trained model as below and use it as `pretrained model` for finetuning:    
+
+Step 1: download trained model on coco dataset
+from [model zoo](https://download.pytorch.org/models/maskrcnn/e2e_mask_rcnn_R_50_FPN_1x.pth)  
+Step 2: do the model surgery on the trained model as below and use it as `pretrained model` for finetuning:
+
 ```python
 def clip_weights_from_pretrain_of_coco_to_cityscapes(f, out_file):
 	""""""
@@ -195,7 +202,9 @@ def clip_weights_from_pretrain_of_coco_to_cityscapes(f, out_file):
 	print("f: {}\nout_file: {}".format(f, out_file))
 	torch.save(m, out_file)
 ```
-Step 3: modify the `input&weight&solver` configuration in the `yaml` file, like this:  
+
+Step 3: modify the `input&weight&solver` configuration in the `yaml` file, like this:
+
 ```
 MODEL:
   WEIGHT: "xxx.pth" # the model u save from above code
@@ -213,5 +222,6 @@ SOLVER:
   STEPS: (3000,)
   MAX_ITER: 4000
 ```
+
 Step 4: train the model.  
 

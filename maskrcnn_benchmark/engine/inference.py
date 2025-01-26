@@ -1,15 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
-import time
 import os
 
 import torch
 from tqdm import tqdm
 
-from maskrcnn_benchmark.data import datasets
 from maskrcnn_benchmark.data.datasets.evaluation import evaluate
-from ..utils.comm import is_main_process, get_world_size
 from ..utils.comm import all_gather
+from ..utils.comm import is_main_process, get_world_size
 from ..utils.comm import synchronize
 from ..utils.timer import Timer, get_time_str
 
@@ -64,8 +62,8 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
 
 
 def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=False, device="cuda",
-        expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False, alphabetical_order=False):
-
+              expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
+              alphabetical_order=False):
     print('inference.py | alphabetical_order: {0}'.format(alphabetical_order))
     # convert to a torch.device for efficiency
     device = torch.device(device)

@@ -2,16 +2,14 @@ import torch
 import torchvision
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 from maskrcnn_benchmark.structures.keypoint import PersonKeypoints
-
+from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 
 # first 40 categories: 1 ~ 44; first 70 categories: 1 ~ 79; first 75 categories: 1 ~ 85
 # second 40 categories: 45 ~ 91; second 10 categories: 80 ~ 91; second 5 categories: 86 ~ 91
 # totally 80 categories
 NUM_OLD_CATEGORY = 70  # do not include background
 NUM_NEW_CATEGORY = 10  # number of added categories
-
 
 COCO_VOC_CATS = ['__background__', 'airplane', 'bicycle', 'bird', 'boat',
                  'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'dining table',
@@ -48,19 +46,19 @@ coco_ids = {'airplane': 5, 'apple': 53, 'backpack': 27, 'banana': 52,
             'bottle': 44, 'bowl': 51, 'broccoli': 56, 'bus': 6, 'cake': 61,
             'car': 3, 'carrot': 57, 'cat': 17, 'cell phone': 77, 'chair': 62,
             'clock': 85, 'couch': 63, 'cow': 21, 'cup': 47, 'dining table':
-            67, 'dog': 18, 'donut': 60, 'elephant': 22, 'fire hydrant': 11,
+                67, 'dog': 18, 'donut': 60, 'elephant': 22, 'fire hydrant': 11,
             'fork': 48, 'frisbee': 34, 'giraffe': 25, 'hair drier': 89,
             'handbag': 31, 'horse': 19, 'hot dog': 58, 'keyboard': 76, 'kite':
-            38, 'knife': 49, 'laptop': 73, 'microwave': 78, 'motorcycle': 4,
+                38, 'knife': 49, 'laptop': 73, 'microwave': 78, 'motorcycle': 4,
             'mouse': 74, 'orange': 55, 'oven': 79, 'parking meter': 14,
             'person': 1, 'pizza': 59, 'potted plant': 64, 'refrigerator': 82,
             'remote': 75, 'sandwich': 54, 'scissors': 87, 'sheep': 20, 'sink':
-            81, 'skateboard': 41, 'skis': 35, 'snowboard': 36, 'spoon': 50,
+                81, 'skateboard': 41, 'skis': 35, 'snowboard': 36, 'spoon': 50,
             'sports ball': 37, 'stop sign': 13, 'suitcase': 33, 'surfboard':
-            42, 'teddy bear': 88, 'tennis racket': 43, 'tie': 32, 'toaster':
-            80, 'toilet': 70, 'toothbrush': 90, 'traffic light': 10, 'train':
-            7, 'truck': 8, 'tv': 72, 'umbrella': 28, 'vase': 86, 'wine glass':
-            46, 'zebra': 24}
+                42, 'teddy bear': 88, 'tennis racket': 43, 'tie': 32, 'toaster':
+                80, 'toilet': 70, 'toothbrush': 90, 'traffic light': 10, 'train':
+                7, 'truck': 8, 'tv': 72, 'umbrella': 28, 'vase': 86, 'wine glass':
+                46, 'zebra': 24}
 
 coco_ids_to_cats = dict(map(reversed, list(coco_ids.items())))
 
@@ -296,7 +294,6 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
 
 
 if __name__ == '__main__':
-
     cats_to_ids = dict(map(reversed, enumerate(COCO_CATS)))
     ids_to_cats = dict(enumerate(COCO_CATS))
     num_classes = len(COCO_CATS)

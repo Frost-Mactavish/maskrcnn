@@ -1,7 +1,9 @@
 ## Installation
 
 ### Requirements:
-- PyTorch 1.0 from a nightly release. It **will not** work with 1.0 nor 1.0.1. Installation instructions can be found in https://pytorch.org/get-started/locally/
+
+- PyTorch 1.0 from a nightly release. It **will not** work with 1.0 nor 1.0.1. Installation instructions can be found
+  in https://pytorch.org/get-started/locally/
 - torchvision from master
 - cocoapi
 - yacs
@@ -9,7 +11,6 @@
 - GCC >= 4.9
 - OpenCV
 - CUDA >= 9.0
-
 
 ### Option 1: Step-by-step installation
 
@@ -68,7 +69,9 @@ unset INSTALL_DIR
 # or if you are on macOS
 # MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python setup.py build develop
 ```
+
 #### Windows 10
+
 ```bash
 open a cmd and change to desired installation directory
 from now on will be refered as INSTALL_DIR
@@ -120,6 +123,7 @@ cd maskrcnn-benchmark
 # re-build it
 python setup.py build develop
 ```
+
 ### Option 2: Docker Image (Requires CUDA, Linux only)
 
 Build image with defaults (`CUDA=9.0`, `CUDNN=7`, `FORCE_CUDA=1`):

@@ -4,17 +4,17 @@ import copy
 import logging
 
 import torch.utils.data
+
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.imports import import_file
-
 from . import datasets as D
 from . import samplers
-
 from .collate_batch import BatchCollator
 from .transforms import build_transforms
 
 
-def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, external_proposal=False, old_classes=None, new_classes=None, excluded_classes=None):
+def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, external_proposal=False, old_classes=None,
+                  new_classes=None, excluded_classes=None):
     """
     Arguments:
         dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_trian, coco_2014_val, etc
@@ -90,7 +90,6 @@ def _compute_aspect_ratios(dataset):
 
 
 def make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_batch, num_iters=None, start_iter=0):
-
     if aspect_grouping:
         if not isinstance(aspect_grouping, (list, tuple)):
             aspect_grouping = [aspect_grouping]
@@ -105,11 +104,14 @@ def make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_batch,
     return batch_sampler
 
 
-def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, external_proposal=False, compression_not_shuffle=False):
+def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, external_proposal=False,
+                     compression_not_shuffle=False):
     num_gpus = get_world_size()
     if is_train:
         images_per_batch = cfg.SOLVER.IMS_PER_BATCH
-        assert (images_per_batch % num_gpus == 0), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(images_per_batch, num_gpus)
+        assert (
+                    images_per_batch % num_gpus == 0), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
+            images_per_batch, num_gpus)
         images_per_gpu = images_per_batch // num_gpus
         if compression_not_shuffle:
             shuffle = False
@@ -118,7 +120,9 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
         num_iters = cfg.SOLVER.MAX_ITER
     else:
         images_per_batch = cfg.TEST.IMS_PER_BATCH
-        assert (images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(images_per_batch, num_gpus)
+        assert (
+                    images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
+            images_per_batch, num_gpus)
         images_per_gpu = images_per_batch // num_gpus
         shuffle = False if not is_distributed else True
         num_iters = None
@@ -150,15 +154,18 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     new_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
     excluded_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
 
-    datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train, external_proposal, old_classes, new_classes, excluded_classes)
+    datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train, external_proposal, old_classes,
+                             new_classes, excluded_classes)
 
     data_loaders = []
     for dataset in datasets:
         sampler = make_data_sampler(dataset, shuffle, is_distributed)
-        batch_sampler = make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_gpu, num_iters, start_iter)
+        batch_sampler = make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_gpu, num_iters,
+                                                start_iter)
         collator = BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
         num_workers = cfg.DATALOADER.NUM_WORKERS
-        data_loader = torch.utils.data.DataLoader(dataset, batch_sampler=batch_sampler, collate_fn=collator) # num_workers=num_workers,
+        data_loader = torch.utils.data.DataLoader(dataset, batch_sampler=batch_sampler,
+                                                  collate_fn=collator)  # num_workers=num_workers,
         data_loaders.append(data_loader)
     if is_train:
         # during training, a single (possibly concatenated) data_loader is returned

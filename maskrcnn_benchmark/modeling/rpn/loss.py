@@ -7,15 +7,12 @@ file
 import torch
 from torch.nn import functional as F
 
-from .utils import concat_box_prediction_layers
-
-from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
-from ..utils import cat
-
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
+from .utils import concat_box_prediction_layers
+from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
 
 
 class RPNLossComputation(object):
@@ -69,7 +66,9 @@ class RPNLossComputation(object):
         overlap_result = []
         matched_result = []
         for anchors_per_image, targets_per_image in zip(anchors, targets):
-            matched_targets, matched_quality_matrix = self.match_targets_to_anchors(anchors_per_image, targets_per_image, self.copied_fields)
+            matched_targets, matched_quality_matrix = self.match_targets_to_anchors(anchors_per_image,
+                                                                                    targets_per_image,
+                                                                                    self.copied_fields)
 
             matched_idxs = matched_targets.get_field("matched_idxs")
 
@@ -164,10 +163,13 @@ class RPNLossComputation(object):
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
 
-        box_loss = smooth_l1_loss(box_regression[sampled_pos_inds], regression_targets[sampled_pos_inds], beta=1.0/9, size_average=False) / (sampled_inds.numel())
+        box_loss = smooth_l1_loss(box_regression[sampled_pos_inds], regression_targets[sampled_pos_inds], beta=1.0 / 9,
+                                  size_average=False) / (sampled_inds.numel())
         # print('rpn | loss.py | call | box_loss : {0}'.format(box_loss))
 
-        objectness_loss = F.binary_cross_entropy_with_logits(objectness[sampled_inds], labels[sampled_inds], weight=None, size_average=None, reduce=None, reduction='none')
+        objectness_loss = F.binary_cross_entropy_with_logits(objectness[sampled_inds], labels[sampled_inds],
+                                                             weight=None, size_average=None, reduce=None,
+                                                             reduction='none')
         original_objectness_loss = torch.mean(objectness_loss)
         # print('rpn | loss.py | call | original_objectness_loss : {0}'.format(original_objectness_loss))
 

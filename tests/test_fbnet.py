@@ -4,8 +4,8 @@ import unittest
 
 import numpy as np
 import torch
-import maskrcnn_benchmark.modeling.backbone.fbnet_builder as fbnet_builder
 
+import maskrcnn_benchmark.modeling.backbone.fbnet_builder as fbnet_builder
 
 TEST_CUDA = torch.cuda.is_available()
 
@@ -79,6 +79,7 @@ class TestFBNetBuilder(unittest.TestCase):
                 op_name, op_func,
                 N=0, C_in=16, C_out=32, expand=4, stride=1
             )
+
 
 if __name__ == "__main__":
     unittest.main()
