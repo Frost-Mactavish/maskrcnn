@@ -36,27 +36,27 @@ def reduce_loss_dict(loss_dict):
 
 
 def do_train(
-        model,  # model object created by build_detection_model() function
-        data_loader,  # dataset
-        optimizer,  # object for torch.optim.sgd.SGD
-        scheduler,  # learning rate updating strategy
-        checkpointer,
-        device,  # torch.device: used to decide hardware training device
-        checkpoint_period,  # model weight saving period
-        arguments,  # extra parameters, e.g. arguments[iteration]
+    model,  # model object created by build_detection_model() function
+    data_loader,  # dataset
+    optimizer,  # object for torch.optim.sgd.SGD
+    scheduler,  # learning rate updating strategy
+    checkpointer,
+    device,  # torch.device: used to decide hardware training device
+    checkpoint_period,  # model weight saving period
+    arguments,  # extra parameters, e.g. arguments[iteration]
 ):
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
 
-    # used to record 
+    # used to record
     meters = MetricLogger(delimiter="  ")
     max_iter = len(data_loader)
     start_iter = arguments["iteration"]
     model.train()  # set the model in training mode
     start_training_time = time.time()
     end = time.time()
-    for iteration, (images, targets, proposals, _) in enumerate(data_loader, start_iter):
+    for iteration, (images, targets, _, _) in enumerate(data_loader, start_iter):
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
@@ -66,7 +66,7 @@ def do_train(
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
-        loss_dict = model(images, targets)
+        loss_dict, _, _, _, _ = model(images, targets)
 
         losses = sum(loss for loss in loss_dict.values())
 
@@ -76,8 +76,6 @@ def do_train(
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         optimizer.zero_grad()
-        # Note: If mixed precision is not used, this ends up doing nothing
-        # Otherwise apply loss scaling for mixed-precision recipe
         losses.backward()
         optimizer.step()
 

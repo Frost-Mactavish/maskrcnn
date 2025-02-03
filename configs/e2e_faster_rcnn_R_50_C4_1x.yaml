@@ -30,7 +30,7 @@ DATASETS:
   TRAIN: ("voc_2007_train", "voc_2007_val")
   TEST: ("voc_2007_test",)
 DATALOADER:
-  SIZE_DIVISIBILITY: 32
+  SIZE_DIVISIBILITY: 0
 SOLVER:
   BASE_LR: 0.001 # start learning rate
   WEIGHT_DECAY: 0.0001
@@ -42,5 +42,5 @@ SOLVER:
   MOMENTUM: 0.9
 TEST: # testing strategy
   IMS_PER_BATCH: 1 # number of images per batch
-OUTPUT_DIR: "/home/incremental_learning_ResNet50_C4/RPN_15_classes_40k_steps" # path to store the result
-TENSORBOARD_DIR: "/home/incremental_learning_ResNet50_C4/RPN_15_classes_40k_steps/tensorboard" # path to store tensorboard info
+OUTPUT_DIR: "/home/xidian12/Downloads" # path to store the result
+TENSORBOARD_DIR: "/home/xidian12/Downloads" # path to store tensorboard info

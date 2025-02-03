@@ -63,9 +63,7 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
     return [dataset]
 
 
-def make_data_sampler(dataset, shuffle, distributed):
-    if distributed:
-        return samplers.DistributedSampler(dataset, shuffle=shuffle)
+def make_data_sampler(dataset, shuffle):
     if shuffle:
         sampler = torch.utils.data.sampler.RandomSampler(dataset)
     else:
@@ -104,42 +102,17 @@ def make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_batch,
     return batch_sampler
 
 
-def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, external_proposal=False,
+def make_data_loader(cfg, is_train=True, start_iter=0, external_proposal=False,
                      compression_not_shuffle=False):
-    num_gpus = get_world_size()
     if is_train:
         images_per_batch = cfg.SOLVER.IMS_PER_BATCH
-        assert (
-                    images_per_batch % num_gpus == 0), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
-            images_per_batch, num_gpus)
-        images_per_gpu = images_per_batch // num_gpus
-        if compression_not_shuffle:
-            shuffle = False
-        else:
-            shuffle = True
+        shuffle = False if compression_not_shuffle else True
         num_iters = cfg.SOLVER.MAX_ITER
     else:
         images_per_batch = cfg.TEST.IMS_PER_BATCH
-        assert (
-                    images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
-            images_per_batch, num_gpus)
-        images_per_gpu = images_per_batch // num_gpus
-        shuffle = False if not is_distributed else True
+        shuffle = False
         num_iters = None
         start_iter = 0
-
-    if images_per_gpu > 1:
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "When using more than one image per GPU you may encounter "
-            "an out-of-memory (OOM) error if your GPU does not have "
-            "sufficient memory. If this happens, you can reduce "
-            "SOLVER.IMS_PER_BATCH (for training) or "
-            "TEST.IMS_PER_BATCH (for inference). For training, you must "
-            "also adjust the learning rate and schedule length according "
-            "to the linear scaling rule. See for example: "
-            "https://github.com/facebookresearch/Detectron/blob/master/configs/getting_started/tutorial_1gpu_e2e_faster_rcnn_R-50-FPN.yaml#L14"
-        )
 
     # group images which have similar aspect ratio. In this case, we only
     # group in two cases: those with width / height > 1, and the other way around,
@@ -159,8 +132,8 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
 
     data_loaders = []
     for dataset in datasets:
-        sampler = make_data_sampler(dataset, shuffle, is_distributed)
-        batch_sampler = make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_gpu, num_iters,
+        sampler = make_data_sampler(dataset, shuffle)
+        batch_sampler = make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_batch, num_iters,
                                                 start_iter)
         collator = BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
         num_workers = cfg.DATALOADER.NUM_WORKERS
