@@ -5,6 +5,7 @@ events.out.tfevents.*
 checkpoints/
 log/
 tb_logger/
+.vscode
 
 
 # Byte-compiled / optimized / DLL files
