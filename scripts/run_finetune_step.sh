@@ -1,5 +1,6 @@
 #!/bin/bash
-port=$(python get_free_port.py)
+
+port=$(python tools/get_free_port.py)
 GPU=1
 
 # SECONDE STEP
