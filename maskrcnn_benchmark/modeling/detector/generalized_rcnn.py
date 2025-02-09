@@ -33,10 +33,10 @@ class GeneralizedRCNN(nn.Module):
 
         self.backbone = build_backbone(cfg)
         if not cfg.MODEL.RPN.EXTERNAL_PROPOSAL:
-            print('generalized_rcnn.py | Do not use external proposals, so use RPN.')
+            # print('generalized_rcnn.py | Do not use external proposals, so use RPN.')
             self.rpn = build_rpn(cfg, self.backbone.out_channels)
-        else:
-            print('generalized_rcnn.py | Use external proposals.')
+        # else:
+        #     print('generalized_rcnn.py | Use external proposals.')
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
 
     def forward(self, images, targets=None):

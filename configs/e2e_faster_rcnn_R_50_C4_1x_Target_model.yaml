@@ -42,5 +42,5 @@ SOLVER:
   MOMENTUM: 0.9
 TEST: # testing strategy
   IMS_PER_BATCH: 1 # number of images per batch
-OUTPUT_DIR: "/home/incremental_learning_ResNet50_C4/10_10" # path to store the result
-TENSORBOARD_DIR: "/home/incremental_learning_ResNet50_C4/10_10/tensorboard"
+OUTPUT_DIR: "/data/my_code/filod/log" # path to store the result
+TENSORBOARD_DIR: "/data/my_code/filod/tb_logger" # path to store tensorboard info

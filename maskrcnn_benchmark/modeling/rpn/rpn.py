@@ -123,13 +123,13 @@ class RPNHead(nn.Module):
     def feature_extraction(self, x):
         logits = []
         for feature in x:
-            print('rpn.py | feature size: {0}'.format(feature.size()))
+            # print('rpn.py | feature size: {0}'.format(feature.size()))
             t = F.relu(self.conv(feature))
             logits.append(self.cls_logits(t))
         return logits
 
 
-class RPNModule(torch.nn.Module):
+class RPNModule(nn.Module):
     """
     Module for RPN computation. Takes feature maps from the backbone and RPN
     proposals and losses. Works for both FPN and non-FPN.
@@ -224,7 +224,7 @@ def build_rpn(cfg, in_channels):
     This gives the gist of it. Not super important because it doesn't change as much
     """
 
-    print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
+    # print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
 
     if cfg.MODEL.RETINANET_ON:
         return build_retinanet(cfg, in_channels)

@@ -49,16 +49,16 @@ class PascalVOCDataset(torch.utils.data.Dataset):
 
         # do not use old data
         if self.is_train:  # training mode
-            print('voc.py | in training mode')
+            # print('voc.py | in training mode')
             self._load_img_from_NEW_cls_without_old_data()
         else:
-            print('voc.py | in test mode')
+            # print('voc.py | in test mode')
             self._load_img_from_NEW_and_OLD_cls_without_old_data()
 
     def _normally_load_voc(self):
         """ load data from all 20 categories """
 
-        print("voc.py | normally_load_voc | load data from all 20 categories")
+        # print("voc.py | normally_load_voc | load data from all 20 categories")
         with open(self._imgsetpath % self.image_set) as f:
             self.ids = f.readlines()
         self.ids = [x.strip("\n") for x in self.ids]
@@ -91,8 +91,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                 else:
                     img_per_categories.append(b[0])
                     self.ids.append(b[0])
-            print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | number of images in {0}_{1}: {2}'.format(
-                category, self.image_set, len(img_per_categories)))
+            # print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | number of images in {0}_{1}: {2}'.format(
+            #     category, self.image_set, len(img_per_categories)))
 
         # check for image ids repeating
         self.final_ids = []
@@ -104,9 +104,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                     break
             if not repeat_flag:
                 self.final_ids.append(id)
-        print(
-            'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
-                self.image_set, len(self.final_ids)))
+        # print(
+        #     'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+        #         self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
@@ -135,8 +135,8 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                 else:
                     img_ids_per_category.append(x[0])
                     self.ids.append(x[0])
-            print('voc.py | load_img_from_NEW_cls_without_old_data | number of images in {0}_{1} set: {2}'.format(
-                incremental, self.image_set, len(img_ids_per_category)))
+            # print('voc.py | load_img_from_NEW_cls_without_old_data | number of images in {0}_{1} set: {2}'.format(
+            #     incremental, self.image_set, len(img_ids_per_category)))
 
             # check for image ids repeating
             self.final_ids = []
@@ -148,9 +148,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                         break
                 if not repeat_flag:
                     self.final_ids.append(id)
-            print(
-                'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
-                    self.image_set, len(self.final_ids)))
+            # print(
+            #     'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+            #         self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
@@ -252,9 +252,11 @@ class PascalVOCDataset(torch.utils.data.Dataset):
             bndbox = tuple(map(lambda x: x - TO_REMOVE, list(map(int, box))))
 
             if exclude_class_flag:
-                print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to exclude categoires: {0}'.format(name))
+                pass
             elif self.is_train and old_class_flag:
-                print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                # print('voc.py | incremental train | object category belongs to old categoires: {0}'.format(name))
+                pass
             else:
                 boxes.append(bndbox)
                 gt_classes.append(self.class_to_ind[name])

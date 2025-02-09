@@ -1,7 +1,12 @@
 import argparse
 import os
+import math
+import sys
+from tqdm import tqdm
+from datetime import datetime
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
@@ -25,35 +30,24 @@ def train(cfg):
     optimizer = make_optimizer(cfg, model)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
-    # create a parameter dictionary and initialize the iteration number to 0
-    arguments = {}
-    arguments["iteration"] = 0
+    arguments = {"iteration": 0}
 
-    # path to store the trained parameter value
     output_dir = cfg.OUTPUT_DIR
 
-    # create check pointer
     checkpointer = DetectronCheckpointer(cfg, model, optimizer, scheduler, output_dir, True)
 
-    # load the pre-trained model parameter to current model
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
 
-    # dict updating method to update the parameter dictionary
     arguments.update(extra_checkpoint_data)
 
-    # load training data
-    # type of data_loader is list, type of its inside elements is torch.utils.data.DataLoader
-    # When is_train=True, make sure cfg.DATASETS.TRAIN is a list
-    # it has to point to one or multiple annotation files
     data_loader = make_data_loader(
         cfg,
         is_train=True,
         start_iter=arguments["iteration"],
     )
 
-    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD  # number of iteration to store parameter value in pth file
+    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
-    # train the model: call function ./maskrcnn_benchmark/engine/trainer.py do_train() function
     do_train(
         model,
         data_loader,
@@ -107,7 +101,7 @@ def run_test(cfg, model):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
+    parser = argparse.ArgumentParser(description="__doc__")
     parser.add_argument(
         "--config-file",
         default="/data/my_code/filod/configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
@@ -138,17 +132,14 @@ def main():
     if output_dir:
         mkdir(output_dir)
 
-    logger = setup_logger("maskrcnn_benchmark", output_dir)
+    logger = setup_logger("FILOD", output_dir)
     logger.info(args)
-    logger.info("Collecting env info (might take some time)")
-    logger.info("\n" + collect_env_info())
     logger.info("Loaded configuration file {}".format(args.config_file))
 
     # open and read the input yaml file, store it on config_str and display on the screen
     with open(args.config_file, "r") as cf:
         config_str = "\n" + cf.read()
         logger.info(config_str)
-    logger.info("Running with config:\n{}".format(cfg))
 
     model = train(cfg)
 

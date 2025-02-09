@@ -23,18 +23,7 @@ class DatasetCatalog(object):
 
     @staticmethod
     def get(name):
-        if "coco" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                root=os.path.join(data_dir, attrs["img_dir"]),
-                ann_file=os.path.join(data_dir, attrs["ann_file"]),
-            )
-            return dict(
-                factory="COCODataset",
-                args=args,
-            )
-        elif "voc" in name:
+        if "voc" in name:
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(
@@ -43,27 +32,6 @@ class DatasetCatalog(object):
             )
             return dict(
                 factory="PascalVOCDataset",
-                args=args,
-            )
-        elif "automatic_compression" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                predict_dir=os.path.join(data_dir, attrs["predict_dir"])
-            )
-            return dict(
-                factory="AutomaticCompressionDataset",
-                args=args,
-            )
-        elif "compression" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                img_dir=os.path.join(data_dir, attrs["img_dir"]),
-                ann_file=os.path.join(data_dir, attrs["ann_file"]),
-            )
-            return dict(
-                factory="CompressionDataset",
                 args=args,
             )
         raise RuntimeError("Dataset not available: {}".format(name))

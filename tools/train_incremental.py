@@ -62,9 +62,7 @@ def do_train(
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(
-        data_loader
-    )  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  # 0
     model_target.train()  # set the target model in training mode
     model_source.eval()  # set the source model in inference mode
