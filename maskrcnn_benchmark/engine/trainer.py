@@ -56,12 +56,10 @@ def do_train(
     model.train()  # set the model in training mode
     start_training_time = time.time()
     end = time.time()
-    for iteration, (images, targets, _, _) in enumerate(data_loader, start_iter):
+    for iteration, (images, targets, _, _) in enumerate(meters.log_every(data_loader, 10, "train"), start_iter):
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
-
-        scheduler.step()
 
         images = images.to(device)
         targets = [target.to(device) for target in targets]
@@ -78,6 +76,7 @@ def do_train(
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
+        scheduler.step()
 
         batch_time = time.time() - end
         end = time.time()

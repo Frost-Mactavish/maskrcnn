@@ -8,15 +8,15 @@ class DatasetCatalog(object):
     DATA_DIR = ""
     DATASETS = {
         "voc_2007_train": {
-            "data_dir": "/home/xidian12/Downloads/VOC2007",
+            "data_dir": "/data/my_code/dataset/VOC",
             "split": "train"
         },
         "voc_2007_val": {
-            "data_dir": "/home/xidian12/Downloads/VOC2007",
+            "data_dir": "/data/my_code/dataset/VOC",
             "split": "val"
         },
         "voc_2007_test": {
-            "data_dir": "/home/xidian12/Downloads/VOC2007",
+            "data_dir": "/data/my_code/dataset/VOC",
             "split": "test"
         },
     }
