@@ -103,7 +103,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                     break
             if not repeat_flag:
                 self.final_ids.append(id)
-        print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+        print(
+            'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
@@ -144,7 +146,9 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                         break
                 if not repeat_flag:
                     self.final_ids.append(id)
-            print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+            print(
+                'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                    self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}

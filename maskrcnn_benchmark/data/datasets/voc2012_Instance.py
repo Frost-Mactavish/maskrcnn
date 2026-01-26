@@ -5,7 +5,6 @@ import torch
 import torch.utils.data
 import torchvision
 from PIL import Image
-
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 

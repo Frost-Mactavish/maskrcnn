@@ -1,8 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-from torch import nn
-
 from maskrcnn_benchmark.modeling import registry
+from torch import nn
 
 
 @registry.ROI_BOX_PREDICTOR.register("FastRCNNPredictor")

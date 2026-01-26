@@ -1,9 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-from torch import nn
-
 from maskrcnn_benchmark.layers.misc import interpolate
 from maskrcnn_benchmark.structures.bounding_box import BoxList
+from torch import nn
 
 
 # TODO check if want to return a single BoxList or a composite

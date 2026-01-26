@@ -12,8 +12,6 @@ import warnings
 
 import torch
 import torch.distributed as dist
-from torch.utils.tensorboard import SummaryWriter
-
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.engine.inference import inference
@@ -30,6 +28,7 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
+from torch.utils.tensorboard import SummaryWriter
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

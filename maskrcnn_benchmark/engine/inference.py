@@ -4,10 +4,10 @@ import os
 
 import numpy as np
 import torch
-from tqdm import tqdm
-
 from maskrcnn_benchmark.data.datasets.evaluation import evaluate
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from tqdm import tqdm
+
 from ..structures.segmentation_mask import SegmentationMask
 from ..utils.comm import is_main_process, get_world_size
 from ..utils.timer import Timer, get_time_str

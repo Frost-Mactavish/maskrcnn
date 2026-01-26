@@ -11,9 +11,6 @@ import warnings
 import numpy as np
 import torch
 import torch.distributed as dist
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
-
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data import make_data_loader  # import data set
@@ -36,6 +33,8 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

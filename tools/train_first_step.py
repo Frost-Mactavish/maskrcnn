@@ -2,8 +2,6 @@ import argparse
 import os
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
-
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.engine.inference import inference
@@ -17,6 +15,7 @@ from maskrcnn_benchmark.utils.comm import synchronize, get_rank, \
 from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from torch.utils.tensorboard import SummaryWriter
 
 
 def train(cfg, local_rank, distributed):

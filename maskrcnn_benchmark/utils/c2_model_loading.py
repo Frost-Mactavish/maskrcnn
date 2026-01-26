@@ -4,7 +4,6 @@ import pickle
 from collections import OrderedDict
 
 import torch
-
 from maskrcnn_benchmark.utils.registry import Registry
 
 

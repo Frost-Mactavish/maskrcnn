@@ -4,10 +4,9 @@ Miscellaneous utility functions
 """
 
 import torch
-from torch import nn
-
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.layers import Conv2d
+from torch import nn
 
 
 def get_group_gn(dim, dim_per_gp, num_groups):

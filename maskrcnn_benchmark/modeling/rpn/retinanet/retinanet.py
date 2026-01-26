@@ -1,9 +1,9 @@
 import math
 
 import torch
+from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from torch import nn
 
-from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from .inference import make_retinanet_postprocessor
 from .loss import make_retinanet_loss_evaluator
 from ..anchor_generator import make_anchor_generator_retinanet

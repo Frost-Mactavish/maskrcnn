@@ -1,10 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 from collections import OrderedDict
 
-from torch import nn
-
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
+from torch import nn
+
 from . import fpn as fpn_module
 from . import resnet
 

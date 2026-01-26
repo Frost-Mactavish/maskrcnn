@@ -4,12 +4,12 @@ file
 """
 
 import torch
-
 from maskrcnn_benchmark.layers import SigmoidFocalLoss
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.modeling.rpn.loss import RPNLossComputation
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
+
 from ..utils import concat_box_prediction_layers
 
 
