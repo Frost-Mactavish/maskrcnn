@@ -50,24 +50,13 @@ def do_train(
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
 
-    # used to record 
+    # used to record
     meters = MetricLogger(delimiter="  ")
     max_iter = len(data_loader)
     start_iter = arguments["iteration"]
     model.train()  # set the model in training mode
     start_training_time = time.time()
     end = time.time()
-
-    # with torch.profiler.profile(
-    #         schedule=torch.profiler.schedule(
-    #             wait=4,
-    #             warmup=2,
-    #             active=6,
-    #             repeat=1),
-    #         on_trace_ready=torch.profiler.tensorboard_trace_handler('logs/profilerIS4'),
-    #         with_stack=True
-    # ) as profiler:
-
     for iteration, (images, targets, proposals, _) in enumerate(data_loader, start_iter):
         data_time = time.time() - end
         iteration = iteration + 1
@@ -86,8 +75,6 @@ def do_train(
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         optimizer.zero_grad()
-        # Note: If mixed precision is not used, this ends up doing nothing
-        # Otherwise apply loss scaling for mixed-precision recipe
         losses.backward()
         optimizer.step()
         scheduler.step()
@@ -99,7 +86,7 @@ def do_train(
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
 
-        if iteration % 100 == 0 or iteration == max_iter:
+        if iteration % 200 == 0 or iteration == max_iter:
             logger.info(
                 meters.delimiter.join(
                     [

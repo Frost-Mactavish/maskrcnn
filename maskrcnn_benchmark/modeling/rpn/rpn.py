@@ -142,7 +142,7 @@ class RPNModule(torch.nn.Module):
 
         anchor_generator = make_anchor_generator(cfg)
 
-        rpn_head = registry.RPN_HEADS[cfg.MODEL.RPN.RPN_HEAD]  # SingleConvRPNHead
+        rpn_head = registry.RPN_HEADS[cfg.MODEL.RPN.RPN_HEAD]
         head = rpn_head(cfg, in_channels, anchor_generator.num_anchors_per_location()[0])
 
         rpn_box_coder = BoxCoder(weights=(1.0, 1.0, 1.0, 1.0))

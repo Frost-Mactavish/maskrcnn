@@ -34,7 +34,6 @@ class BalancedPositiveNegativeSampler(object):
         """
         pos_idx = []
         neg_idx = []
-
         for matched_idxs_per_image in matched_idxs:
             positive = torch.nonzero(matched_idxs_per_image >= 1).squeeze(1)
             negative = torch.nonzero(matched_idxs_per_image == 0).squeeze(1)

@@ -276,7 +276,7 @@ def calculate_roi_distillation_loss(soften_results, target_results, cls_preproce
         bbox_distillation_loss = smooth_l1_loss(modified_target_bboxes, modified_soften_boxes, size_average=False,
                                                 beta=1)
         bbox_distillation_loss = bbox_distillation_loss / (
-                    num_bboxes * num_categories)  # average towards categories and proposals
+                num_bboxes * num_categories)  # average towards categories and proposals
     else:
         raise ValueError("Wrong loss function for bounding box regression")
 

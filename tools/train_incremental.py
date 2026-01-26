@@ -6,6 +6,7 @@ import logging
 import os
 import random
 import time
+import warnings
 
 import numpy as np
 import torch
@@ -35,8 +36,6 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-
-import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -442,14 +441,14 @@ def main():
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
         print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                          :(args.step - 1) * cfg_target.CLS_PER_STEP]
+            :(args.step - 1) * cfg_target.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                              args.step * cfg_source.CLS_PER_STEP:]
+            args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                         (args.step - 1) * cfg_target.CLS_PER_STEP:
-                                                         args.step * cfg_source.CLS_PER_STEP]
+            (args.step - 1) * cfg_target.CLS_PER_STEP:
+            args.step * cfg_source.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
 
     cfg_target.DIST.MASK = args.mask if args.ist else 0.

@@ -5,107 +5,32 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = ""
+    DATA_DIR = "/data/my_code/dataset"
     DATASETS = {
-        "coco_2017_train": {
-            "img_dir": "coco/train2017",
-            "ann_file": "coco/annotations/instances_train2017.json"
-        },
-        "coco_2017_val": {
-            "img_dir": "coco/val2017",
-            "ann_file": "coco/annotations/instances_val2017.json"
-        },
-        "coco_2014_train": {
-            "img_dir": "DATA/COCO2014/train2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_train2014.json"
-        },
-        "coco_2014_val": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_val2014.json"
-        },
-        "coco_2014_minival": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_minival2014.json"
-        },
-        "coco_2014_valminusminival": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_valminusminival2014.json"
-        },
-        "keypoints_coco_2014_train": {
-            "img_dir": "coco/train2014",
-            "ann_file": "coco/annotations/person_keypoints_train2014.json",
-        },
-        "keypoints_coco_2014_val": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_val2014.json"
-        },
-        "keypoints_coco_2014_minival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_minival2014.json",
-        },
-        "keypoints_coco_2014_valminusminival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_valminusminival2014.json",
-        },
-        "voc_2007_train": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
-            "split": "train"
-        },
-        "voc_2007_train_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_train2007.json"
-        },
-        "voc_2007_val": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
-            "split": "val"
-        },
-        "voc_2007_val_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_val2007.json"
+        "voc_2007_trainval": {
+            "data_dir": "VOC",
+            "split": "trainval"
         },
         "voc_2007_test": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
+            "data_dir": "VOC",
             "split": "test"
         },
-        "voc_2007_test_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_test2007.json"
+        "dior_train": {
+            "data_dir": "DIOR",
+            "split": "train"
         },
-        "voc_2012_train": {
-            "data_dir": "data/voc12/benchmark_RELEASE/dataset/img",
-            "split": "train",
-            "ann_file": "data/voc12/benchmark_RELEASE/dataset/pascal_sbd_train.json"
+        "dior_test": {
+            "data_dir": "DIOR",
+            "split": "test"
         },
-        "voc_2012_train_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_train2012.json"
+        "dota_train": {
+            "data_dir": "DOTA",
+            "split": "train"
         },
-        "voc_2012_val": {
-            "data_dir": "/home/ageraci/FILOD/data_prova/VOCdevkit/VOC2007",
-            "split": "val"
+        "dota_test": {
+            "data_dir": "DOTA",
+            "split": "test"
         },
-        "voc_2012_val_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_val2012.json"
-        },
-        "voc_2012_test": {
-            "data_dir": "data/voc12/benchmark_RELEASE/dataset/img",
-            "split": "val",
-            "ann_file": "data/voc12/benchmark_RELEASE/dataset/pascal_sbd_val.json"
-            # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
-        },
-        "cityscapes_fine_instanceonly_seg_train_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_train.json"
-        },
-        "cityscapes_fine_instanceonly_seg_val_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_val.json"
-        },
-        "cityscapes_fine_instanceonly_seg_test_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
-        }
     }
 
     @staticmethod
@@ -121,7 +46,7 @@ class DatasetCatalog(object):
                 factory="COCODataset",
                 args=args,
             )
-        elif "voc_2007" in name:
+        elif "voc" in name:
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(
@@ -132,16 +57,26 @@ class DatasetCatalog(object):
                 factory="PascalVOCDataset",
                 args=args,
             )
-        elif "voc_2012" in name:
+        elif "dior" in name:
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(
                 data_dir=os.path.join(data_dir, attrs["data_dir"]),
                 split=attrs["split"],
-                ann_file=attrs["ann_file"]
             )
             return dict(
-                factory="PascalVOCDataset2012",
+                factory="DIORDataset",
+                args=args,
+            )
+        elif "dota" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                data_dir=os.path.join(data_dir, attrs["data_dir"]),
+                split=attrs["split"],
+            )
+            return dict(
+                factory="DOTADataset",
                 args=args,
             )
         elif "automatic_compression" in name:

@@ -1,7 +1,12 @@
 # customized configs
+.vscode
 *.pth
 *.safetensors
 events.out.tfevents.*
+checkpoints/
+log/
+tb_logger/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

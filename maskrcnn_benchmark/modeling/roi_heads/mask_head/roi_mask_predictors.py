@@ -27,8 +27,7 @@ class MaskRCNNC4Predictor(nn.Module):
                 nn.init.kaiming_normal_(param, mode="fan_out", nonlinearity="relu")
 
     def forward(self, x):
-        x = self.conv5_mask(x)
-        x = F.relu(x)
+        x = F.relu(self.conv5_mask(x))
         return self.mask_fcn_logits(x)
 
 
@@ -50,8 +49,7 @@ class MaskRCNNConv1x1Predictor(nn.Module):
                 nn.init.kaiming_normal_(param, mode="fan_out", nonlinearity="relu")
 
     def forward(self, x):
-        x = self.mask_fcn_logits(x)
-        return x
+        return self.mask_fcn_logits(x)
 
 
 def make_roi_mask_predictor(cfg, in_channels):
