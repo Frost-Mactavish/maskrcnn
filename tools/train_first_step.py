@@ -1,5 +1,6 @@
 import argparse
 import os
+import warnings
 
 import torch
 from maskrcnn_benchmark.config import cfg
@@ -10,12 +11,11 @@ from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.comm import synchronize, get_rank, \
-    get_world_size  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
+from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
 from torch.utils.tensorboard import SummaryWriter
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def train(cfg):
@@ -110,7 +110,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file", "-c",
-        default="/data/my_code/filod/configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
+        default="configs/DIOR/19-1/base.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
@@ -147,7 +147,7 @@ def main():
     logger.info(args)
     logger.info("Loaded configuration file {}".format(args.config_file))
 
-    model = train(cfg, args.local_rank, True)
+    model = train(cfg)
 
     if not args.skip_test:
         run_test(cfg)
