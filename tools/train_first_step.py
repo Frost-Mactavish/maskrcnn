@@ -18,7 +18,7 @@ from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder cr
 from torch.utils.tensorboard import SummaryWriter
 
 
-def train(cfg, local_rank, distributed):
+def train(cfg):
     device = torch.device(cfg.MODEL.DEVICE)
 
     model = build_detection_model(cfg)
@@ -35,7 +35,7 @@ def train(cfg, local_rank, distributed):
     output_dir = cfg.OUTPUT_DIR
 
     # create check pointer
-    checkpointer = DetectronCheckpointer(cfg, model, optimizer, scheduler, output_dir, save_to_disk)
+    checkpointer = DetectronCheckpointer(cfg, model, optimizer, scheduler, output_dir, True)
 
     # load the pre-trained model parameter to current model
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
@@ -50,10 +50,7 @@ def train(cfg, local_rank, distributed):
     data_loader = make_data_loader(
         cfg,
         is_train=True,
-        is_distributed=distributed,  # whether using multiple gpus to train
         start_iter=arguments["iteration"],
-        num_gpus=get_world_size(),
-        rank=get_rank()
     )
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD  # number of iteration to store parameter value in pth file
@@ -84,10 +81,6 @@ def run_test(cfg):
     _ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
-        iou_types = iou_types + ("segm",)
-    if cfg.MODEL.KEYPOINT_ON:
-        iou_types = iou_types + ("keypoints",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
     if cfg.OUTPUT_DIR:
@@ -95,7 +88,7 @@ def run_test(cfg):
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
             mkdir(output_folder)
             output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=False)
+    data_loaders_val = make_data_loader(cfg, is_train=False)
     summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
         inference(
@@ -142,15 +135,6 @@ def main():
 
     args = parser.parse_args()
 
-    # if there is more than 1 gpu, set initialization for distribute training
-    torch.cuda.set_device(args.local_rank)
-    torch.distributed.init_process_group(
-        backend="nccl", init_method="env://"
-    )
-    synchronize()
-    num_gpus = get_world_size()
-    print("I'm using ", num_gpus, " gpus!")
-
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
@@ -161,15 +145,7 @@ def main():
 
     logger = setup_logger("maskrcnn_benchmark", output_dir, get_rank())
     logger.info(args)
-    # logger.info("Collecting env info (might take some time)")
-    # logger.info("\n" + collect_env_info())
     logger.info("Loaded configuration file {}".format(args.config_file))
-
-    # open and read the input yaml file, store it on config_str and display on the screen
-    # with open(args.config_file, "r") as cf:
-    #     config_str = "\n" + cf.read()
-    #     logger.info(config_str)
-    # logger.info("Running with config:\n{}".format(cfg))
 
     model = train(cfg, args.local_rank, True)
 
