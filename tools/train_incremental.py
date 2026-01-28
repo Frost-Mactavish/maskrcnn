@@ -6,6 +6,8 @@ import random
 import time
 import warnings
 from tqdm import tqdm
+import sys
+import math
 
 import numpy as np
 import torch
@@ -105,6 +107,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
+        if not math.isfinite(loss := losses_reduced.item()):
+            print(f"Loss is {loss}, stop training")
+            sys.exit(1)
+
         if (iteration - 1) > 0:
             average_distillation_loss = (average_distillation_loss * (iteration - 1) + distillation_losses) / iteration
             average_faster_rcnn_loss = (average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses) / iteration
@@ -112,11 +118,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             average_distillation_loss = distillation_losses
             average_faster_rcnn_loss = faster_rcnn_losses
 
-        optimizer.zero_grad()  # clear the gradient cache
-        # If mixed precision is not used, this ends up doing nothing, otherwise apply loss scaling for mixed-precision recipe.
-        losses.backward()  # use back-propagation to update the gradient
-        optimizer.step()  # update learning rate
-        scheduler.step()  # update the learning rate
+        optimizer.zero_grad()
+        losses.backward()
+        optimizer.step()
+        scheduler.step()
 
         # time used to do one batch processing
         batch_time = time.time() - end
