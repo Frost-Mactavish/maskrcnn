@@ -335,13 +335,10 @@ def main():
     target_model_config_file = f"configs/DIOR/{args.task}/target.yaml"
     full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
 
-
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(target_model_config_file)
-    # if args.step == 2:
-    #     cfg_source.MODEL.SOURCE_WEIGHT = f"output/{args.name}/model_final.pth"
     if args.step >= 2:
-        base = 'output'
+        base = 'log'
         cfg_source.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
         cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
@@ -359,7 +356,7 @@ def main():
     # if args.step == 2:
     #     cfg_target.MODEL.WEIGHT = f"output/{args.name}/model_trimmed.pth"
     if args.step >= 2:
-        base = 'output'
+        base = 'log'
         cfg_target.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
