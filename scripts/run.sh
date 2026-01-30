@@ -8,17 +8,22 @@ shopt -s expand_aliases
 
 # INCREMENTAL STEPS
 task=10-10
-#exp -t ${task} -n ILOD
-#exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.1
-
+exp -t ${task} -n ILOD
+exp -t ${task} -n FILOD --rpn --feat std --cls 1.
+exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.1
 
 task=15-5
-#exp -t ${task} -n ILOD
-#exp -t ${task} -n FILOD --feat std --rpn --cls 1.
-#exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.5
+exp -t ${task} -n ILOD
+exp -t ${task} -n FILOD --feat std --rpn --cls 1.
+exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.5
 
 task=19-1
-#exp -t ${task} -n ILOD
-#exp -t ${task} -n FILOD_noFEAT_UCE_UKD --rpn --uce --dist_type uce --cls 1
-#exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 1
+exp -t ${task} -n ILOD
+# exp -t ${task} -n FILOD_noFEAT_UCE_UKD --rpn --uce --dist_type uce --cls 1
+exp -t ${task} -n FILOD --feat std --rpn --cls 1.
+exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 1
 
+task=5-15
+exp -t ${task} -n ILOD
+exp -t ${task} -n FILOD --feat std --rpn --cls 1.
+exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.1

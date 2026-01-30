@@ -36,7 +36,7 @@ SOLVER:
   STEPS: (9474, 12839)
   MAX_ITER: 13961 # number of iteration
   CHECKPOINT_PERIOD: 12839 # number of iteration to generate check point
-  IMS_PER_BATCH: 8 # number of images per batch
+  IMS_PER_BATCH: 4 # number of images per batch
   MOMENTUM: 0.9
 TEST: # testing strategy
   IMS_PER_BATCH: 8 # number of images per batch
