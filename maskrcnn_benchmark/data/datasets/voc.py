@@ -303,6 +303,28 @@ class DIORDataset(PascalVOCDataset):
     )
 
 
+class DOTADataset(PascalVOCDataset):
+    CLASSES = (
+        "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",
+        "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
+        "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
+    )
+
+    def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
+                 new_classes=[], excluded_classes=[], is_train=True):
+        super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal, 
+                                          old_classes, new_classes, excluded_classes, is_train)
+        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
+
+    def get_img_info(self, index):
+        img_id = self.final_ids[index]
+        anno = ET.parse(self._annopath % img_id).getroot()
+        size = anno.find("size")
+        im_info = tuple(map(int, (size.find("height").text, size.find("width").text)))
+        filename = anno.find("filename").text.split("_")[0]
+        return {"height": im_info[0], "width": im_info[1], "file_name": filename}
+
+
 def main():
     data_dir = "/home/DATA/VOC2007"
     split = "test"  # train, val, test

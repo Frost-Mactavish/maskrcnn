@@ -24,11 +24,11 @@ class DatasetCatalog(object):
             "split": "test"
         },
         "dota_train": {
-            "data_dir": "DOTA",
+            "data_dir": "DOTA_xml",
             "split": "train"
         },
         "dota_test": {
-            "data_dir": "DOTA",
+            "data_dir": "DOTA_xml",
             "split": "test"
         },
     }

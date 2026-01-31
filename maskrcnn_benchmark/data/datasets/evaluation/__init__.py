@@ -2,6 +2,7 @@ from maskrcnn_benchmark.data import datasets
 
 from .coco import coco_evaluation
 from .voc import voc_evaluation, voc_evaluation_inst
+from .dota import dota_evaluation
 
 
 def evaluate(dataset, predictions, output_folder, **kwargs):
@@ -26,6 +27,8 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
         return voc_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset2012):
         return voc_evaluation_inst(**args)
+    elif isinstance(dataset, datasets.DOTADataset):
+        return dota_evaluation(**args)
     else:
         dataset_name = dataset.__class__.__name__
         raise NotImplementedError("Unsupported dataset type {}.".format(dataset_name))
