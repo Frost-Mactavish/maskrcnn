@@ -305,6 +305,7 @@ class DIORDataset(PascalVOCDataset):
 
 class DOTADataset(PascalVOCDataset):
     CLASSES = (
+        "__background__",
         "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",
         "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
         "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
@@ -321,7 +322,7 @@ class DOTADataset(PascalVOCDataset):
         anno = ET.parse(self._annopath % img_id).getroot()
         size = anno.find("size")
         im_info = tuple(map(int, (size.find("height").text, size.find("width").text)))
-        filename = anno.find("filename").text.split("_")[0]
+        filename = anno.find("filename").text
         return {"height": im_info[0], "width": im_info[1], "file_name": filename}
 
 

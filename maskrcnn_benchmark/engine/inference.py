@@ -11,6 +11,7 @@ from tqdm import tqdm
 from ..structures.segmentation_mask import SegmentationMask
 from ..utils.comm import is_main_process, get_world_size
 from ..utils.timer import Timer, get_time_str
+from maskrcnn_benchmark.data.datasets import DOTADataset
 
 
 def bb_intersection_over_union(boxA, boxB):
@@ -55,7 +56,8 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     file_list = []
     for idx, batch in enumerate(tqdm(data_loader)):
         images, targets, proposals, img_id = batch
-        file_list.extend(dataset.get_img_info(i)["file_name"] for i in img_id)
+        if isinstance(data_loader.dataset, DOTADataset):
+            file_list.extend(dataset.get_img_info(i)["file_name"] for i in img_id)
         ious = []
         # load images and proposals to gpu
         images = images.to(device)
@@ -160,7 +162,7 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
 
 def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=False, device="cuda",
               expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
-              alphabetical_order=True, summary_writer=None, save_predictions=False):
+              alphabetical_order=True, summary_writer=None, save_predictions=False, **kwargs):
     # ONLY SUPPORTED ON SINGLE GPU!
     print('inference.py | alphabetical_order: {0}'.format(alphabetical_order))
     # convert to a torch.device for efficiency
@@ -209,6 +211,7 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
         expected_results_sigma_tol=expected_results_sigma_tol,
         alphabetical_order=alphabetical_order,
         file_list=file_list,
+        **kwargs
     )
 
     return evaluate(dataset=dataset,

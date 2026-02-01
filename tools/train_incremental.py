@@ -282,15 +282,22 @@ def main():
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
+        "-n", "--name",
+        default="EXP",
+    )
+    parser.add_argument(
+        "-d", "--dataset",
+        type=str,
+        default="DIOR"
+    )
+    parser.add_argument(
         "-t", "--task",
         type=str,
         default="15-5"
     )
     parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
+        "-s", "--step",
+        default=1, type=int
     )
     parser.add_argument(
         "--rpn",
@@ -323,23 +330,21 @@ def main():
         type=str, choices=['uce', 'ce', 'ce_ada', 'ce_all', 'l2', 'none']
     )
     parser.add_argument(
-        "-n", "--name",
-        default="EXP",
-    )
-    parser.add_argument(
-        "-s", "--step",
-        default=1, type=int
+        "--skip-test",
+        dest="skip_test",
+        help="Do not test the final model",
+        action="store_true",
     )
 
     args = parser.parse_args()
-    target_model_config_file = f"configs/DIOR/{args.task}/target.yaml"
+    target_model_config_file = f"configs/{args.dataset}/{args.task}/target.yaml"
     full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
 
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(target_model_config_file)
     if args.step >= 2:
         base = 'log'
-        cfg_source.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
+        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
         cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
@@ -357,7 +362,7 @@ def main():
     #     cfg_target.MODEL.WEIGHT = f"output/{args.name}/model_trimmed.pth"
     if args.step >= 2:
         base = 'log'
-        cfg_target.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
+        cfg_target.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP

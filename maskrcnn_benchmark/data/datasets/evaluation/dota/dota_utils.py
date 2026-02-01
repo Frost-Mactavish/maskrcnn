@@ -265,21 +265,16 @@ def voc_eval(
     return rec[-1], ap
 
 
-def dota_eval(detpath):
+def dota_eval(detpath, class_list):
     detpath += r"/{:s}.txt"
     annopath = r"/data/my_code/dataset/DOTA/test/labelTxt/{:s}.txt"
     imagesetfile = r"/data/my_code/dataset/DOTA/test/testset.txt"
 
-    classnames = ["plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle", "large-vehicle", "ship",
-                  "tennis-court",
-                  "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool",
-                  "helicopter"]
-
-    max_len = max([len(x) for x in classnames])
+    max_len = max([len(x) for x in class_list])
 
     map, ap_list = 0.0, []
     print_msg = []
-    for classname in classnames:
+    for classname in class_list:
         rec, ap = voc_eval(
             detpath,
             annopath,
@@ -292,8 +287,8 @@ def dota_eval(detpath):
         map += ap
         ap_list.append(ap * 100)
 
-    map = map / len(classnames) * 100
-    print_msg.append(f"mAP: {map * 100:.2f}")
+    map = map / len(class_list) * 100
+    print_msg.append(f"mAP: {map:.2f}")
     return print_msg
 
 
@@ -450,7 +445,7 @@ def rewrite(srcpath):
             f.writelines(new_lines)
 
 
-def merge_and_eval(srcpath, dstpath):
+def merge_and_eval(srcpath, dstpath, class_list):
     merge_result(srcpath, dstpath)
     rewrite(dstpath)
-    return dota_eval(dstpath)
+    return dota_eval(dstpath, class_list)

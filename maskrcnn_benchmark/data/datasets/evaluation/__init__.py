@@ -22,13 +22,13 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
     if isinstance(dataset, datasets.COCODataset):
         print('do coco evaluation')
         return coco_evaluation(**args)
+    elif isinstance(dataset, datasets.DOTADataset):
+        return dota_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset):
         print('do voc evaluation')
         return voc_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset2012):
         return voc_evaluation_inst(**args)
-    elif isinstance(dataset, datasets.DOTADataset):
-        return dota_evaluation(**args)
     else:
         dataset_name = dataset.__class__.__name__
         raise NotImplementedError("Unsupported dataset type {}.".format(dataset_name))
