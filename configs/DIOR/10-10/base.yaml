@@ -34,9 +34,9 @@ SOLVER:
   BASE_LR: 0.01 # start learning rate
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1  # learning rate decay
-  STEPS: (8590, 11811)
-  MAX_ITER: 12885 # number of iteration
-  CHECKPOINT_PERIOD: 11811 # number of iteration to generate check point
+  STEPS: (8690, 11911)
+  MAX_ITER: 12985 # number of iteration
+  CHECKPOINT_PERIOD: 11911 # number of iteration to generate check point
   IMS_PER_BATCH: 8 # number of images per batch
   MOMENTUM: 0.9
 TEST: # testing strategy

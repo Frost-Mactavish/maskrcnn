@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "ckpt/base/DIOR_19+1_base_67.7.pth"
+  WEIGHT: "ckpt/base19+1_base_67.7.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"
   RESNETS:
@@ -33,12 +33,12 @@ SOLVER:
   BASE_LR: 0.0004 # start learning rate
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1  # learning rate decay
-  STEPS: (1307, 1610)
-  MAX_ITER: 1711 # number of iteration
-  CHECKPOINT_PERIOD: 1610 # number of iteration to generate check point
+  STEPS: (2000,)
+  MAX_ITER: 2500 # number of iteration
+  CHECKPOINT_PERIOD: 2000 # number of iteration to generate check point
   IMS_PER_BATCH: 4 # number of images per batch
   MOMENTUM: 0.9
 TEST: # testing strategy
   IMS_PER_BATCH: 8 # number of images per batch
-OUTPUT_DIR: "log/DIOR_" # path to store the result
-TENSORBOARD_DIR: "log/DIOR_"
+OUTPUT_DIR: "log" # path to store the result
+TENSORBOARD_DIR: "log"

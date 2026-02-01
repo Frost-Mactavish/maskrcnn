@@ -351,8 +351,8 @@ def main():
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
-    cfg_source.OUTPUT_DIR += args.task + "/" + full_name + "/SRC"
-    cfg_source.TENSORBOARD_DIR += args.task + "/" + full_name
+    cfg_source.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name + "/SRC"
+    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_source.freeze()
 
     # LOAD THEN MODIFY PARS FROM CLI
@@ -387,9 +387,9 @@ def main():
                               cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
     cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.INIT = args.init
-    cfg_target.OUTPUT_DIR += args.task + "/" + full_name
+    cfg_target.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_target.INCREMENTAL = args.uce
-    cfg_target.TENSORBOARD_DIR += args.task + "/" + full_name
+    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_target.TASK = args.task
     cfg_target.STEP = args.step
     cfg_target.NAME = args.name
