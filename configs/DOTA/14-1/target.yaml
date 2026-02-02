@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "ckpt/base/DIOR_19+1_base_67.7.pth"
+  WEIGHT: "ckpt/DOTA_14+1_base_62.3.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"
   RESNETS:
