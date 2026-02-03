@@ -1,44 +1,36 @@
-# Set up custom environment before nearly anything else is imported
-# NOTE: this should be the first import (no not reorder)
 import argparse
 import datetime
 import logging
+import math
 import os
 import random
+import sys
 import time
+import warnings
 
-import cv2
 import numpy as np
 import torch
-import torch.distributed as dist
-from PIL import Image
-from maskrcnn_benchmark.config import \
-    cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
-from maskrcnn_benchmark.data import make_data_loader  # import data set
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss, \
-    calculate_attentive_roi_feature_distillation
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.engine.inference import inference  # inference
-from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
-from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
-from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
-from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
-from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import get_world_size
-from maskrcnn_benchmark.utils.comm import synchronize, \
-    get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-from maskrcnn_benchmark.utils.imports import import_file
-from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import warnings
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.distillation.distillation import (
+    calculate_feature_distillation_loss,
+    calculate_attentive_roi_feature_distillation,
+    calculate_roi_distillation_losses,
+    calculate_rpn_distillation_loss
+)
+from maskrcnn_benchmark.engine.inference import inference
+from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
+from maskrcnn_benchmark.modeling.detector import build_detection_model
+from maskrcnn_benchmark.solver import make_lr_scheduler
+from maskrcnn_benchmark.solver import make_optimizer
+from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
+from maskrcnn_benchmark.utils.comm import get_rank
+from maskrcnn_benchmark.utils.logger import setup_logger
+from maskrcnn_benchmark.utils.metric_logger import MetricLogger
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -52,7 +44,6 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     max_iter = len(
         data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
     start_iter = arguments_target["iteration"]  #
-
     model_target.train()  # set the target model in training mode
     model_source.eval()  # set the source model in inference mode
     start_training_time = time.time()
@@ -131,6 +122,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
+        if not math.isfinite(loss := losses_reduced.item()):
+            print(f"Loss is {loss}, stop training")
+            sys.exit(1)
+
         if (iteration - 1) > 0:
             average_distillation_loss = (average_distillation_loss * (iteration - 1) + distillation_losses) / iteration
             average_faster_rcnn_loss = (average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses) / iteration
@@ -138,11 +133,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             average_distillation_loss = distillation_losses
             average_faster_rcnn_loss = faster_rcnn_losses
 
-        optimizer.zero_grad()  # clear the gradient cache
-        # If mixed precision is not used, this ends up doing nothing, otherwise apply loss scaling for mixed-precision recipe.
-        losses.backward()  # use back-propagation to update the gradient
-        optimizer.step()  # update learning rate
-        scheduler.step()  # update the learning rate
+        optimizer.zero_grad()
+        losses.backward()
+        optimizer.step()
+        scheduler.step()
 
         # time used to do one batch processing
         batch_time = time.time() - end
@@ -154,10 +148,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         # for every 100 iterations, display the training status
         if iteration % 100 == 0 or iteration == max_iter:
             logger.info(
-                meters.delimiter.join(
-                    ["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"]).format(
-                    eta=eta_string, iter=iteration, meters=str(meters), lr=optimizer.param_groups[0]["lr"],
-                    memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
+                meters.delimiter.join(["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"
+                                       ]).format(eta=eta_string, iter=iteration, meters=str(meters),
+                                                 lr=optimizer.param_groups[0]["lr"],
+                                                 memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
             # write to tensorboardX
             loss_global_avg = meters.loss.global_avg
             loss_median = meters.loss.median
@@ -182,7 +176,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     logger.info("Total training time: {} ({:.4f} s / it)".format(total_time_str, total_training_time / max_iter))
 
 
-def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_rank):
+def train(cfg_source, cfg_target, logger_target):
     model_source = build_detection_model(cfg_source)  # create the source model
     model_target = build_detection_model(cfg_target)  # create the target model
     device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
@@ -190,22 +184,18 @@ def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_ra
     model_source.to(device)  # move source model to gpu
     optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
     scheduler = make_lr_scheduler(cfg_target, optimizer)  # config learning rate
-
     # create a parameter dictionary and initialize the iteration number to 0
     arguments_target = {}
     arguments_target["iteration"] = 0
     arguments_source = {}
     arguments_source["iteration"] = 0
-
     # path to store the trained parameter value
     output_dir_target = cfg_target.OUTPUT_DIR
     output_dir_source = cfg_source.OUTPUT_DIR
-
     # create summary writer for tensorboard
     summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
     # when only use 1 gpu, get_rank() returns 0
     save_to_disk = get_rank() == 0
-
     # create check pointer for source model & load the pre-trained model parameter to source model
     checkpointer_source = DetectronCheckpointer(cfg_source, model_source, optimizer=None, scheduler=None,
                                                 save_dir=output_dir_source,
@@ -223,16 +213,8 @@ def train(cfg_source, cfg_target, logger_target, distributed, num_gpus, local_ra
 
     print('Start iteration: {0}'.format(arguments_target["iteration"]))
 
-    if distributed:
-        model_target = torch.nn.parallel.DistributedDataParallel(
-            model_target, device_ids=[local_rank], output_device=local_rank,
-            # this should be removed if we update BatchNorm stats
-            # broadcast_buffers=False,
-        )
-
     # load training data
-    data_loader = make_data_loader(cfg_target, is_train=True, is_distributed=distributed,
-                                   start_iter=arguments_target["iteration"], num_gpus=num_gpus, rank=get_rank())
+    data_loader = make_data_loader(cfg_target, is_train=True, start_iter=arguments_target["iteration"])
     print('Finish loading data')
     # number of iteration to store parameter value in pth file
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
@@ -259,10 +241,6 @@ def test(cfg):
     _ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
-        iou_types = iou_types + ("segm",)
-    if cfg.MODEL.KEYPOINT_ON:
-        iou_types = iou_types + ("keypoints",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
     if cfg.OUTPUT_DIR:
@@ -284,50 +262,44 @@ def test(cfg):
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
             alphabetical_order=cfg.TEST.COCO_ALPHABETICAL_ORDER,
-            summary_writer=summary_writer
+            summary_writer=summary_writer,
+            cfg=cfg
         )
-        if not cfg.MODEL.MASK_ON:
-            with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
-                fid.write(cfg.NAME)
-                fid.write(",")
-                fid.write(str(cfg.STEP))
-                fid.write(",")
-                fid.write(",".join([str(x) for x in result["ap"][1:]]))
-                fid.write("\n")
-        else:
-            with open(os.path.join("mask_out", f"{cfg.TASK}_mask.txt"), "a") as fid:
-                fid.write(cfg.NAME)
-                fid.write(",")
-                fid.write(str(cfg.STEP))
-                fid.write(",")
-                fid.write(",".join([str(x) for x in result['mask']]))
-                fid.write("\n")
-            with open(os.path.join("mask_out", f"{cfg.TASK}_box.txt"), "a") as fid:
-                fid.write(cfg.NAME)
-                fid.write(",")
-                fid.write(str(cfg.STEP))
-                fid.write(",")
-                fid.write(",".join([str(x) for x in result['box']]))
-                fid.write("\n")
+        with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
+            fid.write(cfg.NAME)
+            fid.write(",")
+            fid.write(str(cfg.STEP))
+            fid.write(",")
+            fid.write(",".join([str(x) for x in result["ap"][1:]]))
+            fid.write("\n")
 
 
 def main():
+    random_seed = 42
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    print(random.randint(1, 1000))
+
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=0
+        "-n", "--name",
+        default="EXP",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=42
+        "-d", "--dataset",
+        type=str,
+        default="DIOR"
     )
     parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
+        "-t", "--task",
+        type=str,
+        default="15-5"
+    )
+    parser.add_argument(
+        "-s", "--step",
+        default=1, type=int
     )
     parser.add_argument(
         "--feat",
@@ -362,19 +334,6 @@ def main():
         choices=['l2', 'id', 'none']
     )
     parser.add_argument(
-        "-t", "--task",
-        type=str,
-        default="15-5"
-    )
-    parser.add_argument(
-        "-n", "--name",
-        default="EXP",
-    )
-    parser.add_argument(
-        "-s", "--step",
-        default=1, type=int
-    )
-    parser.add_argument(
         "-mb", "--memory_buffer",
         default=0, type=int
     )
@@ -385,73 +344,61 @@ def main():
         choices=['mean', 'random', 'herding']
     )
     parser.add_argument(
-        "-cvd", "--cuda_visible_devices",
-        default="0,1", type=str
+        "--local_rank",
+        type=int,
+        default=0
+    )
+    parser.add_argument(
+        "--skip-test",
+        dest="skip_test",
+        help="Do not test the final model",
+        action="store_true",
     )
 
     args = parser.parse_args()
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_visible_devices
-
     if args.memory_type is None:
         # Finetuning without memory_type.
-        target_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x_Target_model.yaml"
+        target_model_config_file = f"configs/{args.dataset}/{args.task}/target.yaml"
     else:
-        target_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x_RB_Target_model.yaml"
+        target_model_config_file = f"configs/{args.dataset}/{args.task}/RB_target.yaml"
 
     full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
 
-    torch.cuda.set_device(args.local_rank)
-    torch.distributed.init_process_group(
-        backend="nccl", init_method="env://"
-    )
-    distributed = True
-    synchronize()
-    num_gpus = get_world_size()
-    print("Number of gpus : ", get_world_size())
-
-    random_seed = args.seed
-    torch.manual_seed(random_seed)
-    torch.cuda.manual_seed(random_seed)
-    np.random.seed(random_seed)
-    random.seed(random_seed)
-    print(random.randint(1, 1000))
-
-    base = 'output'
+    base = 'log'
     # Load source model
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(target_model_config_file)
     cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
     if args.step >= 2:
-        cfg_source.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
-
+        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
-    cfg_source.OUTPUT_DIR += args.task + "/" + full_name + "/SRC"
-    cfg_source.TENSORBOARD_DIR += args.task + "/" + full_name
+    cfg_source.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name + "/SRC"
+    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_source.freeze()
 
     # Create target model based on source model
     cfg_target = cfg.clone()
     cfg_target.merge_from_file(target_model_config_file)
     if args.step >= 2 and cfg_source.CLS_PER_STEP != -1:
-        cfg_target.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
+        cfg_target.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
 
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
         print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                          :(args.step - 1) * cfg_target.CLS_PER_STEP]
+            :(args.step - 1) * cfg_target.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                              args.step * cfg_source.CLS_PER_STEP:]
+            args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(
-                                                                                                                    args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+                                                                                                                args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
 
     cfg_target.DIST.FEAT = args.feat
@@ -459,9 +406,9 @@ def main():
     cfg_target.DIST.BETA = args.beta_attentive_roi_distillation
     cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.ALPHA = args.alpha_inclusive_distillation
-    cfg_target.OUTPUT_DIR += args.task + "/" + full_name
+    cfg_target.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_target.INCREMENTAL = args.inc
-    cfg_target.TENSORBOARD_DIR += args.task + "/" + full_name
+    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
     cfg_target.TASK = args.task
     cfg_target.STEP = args.step
     cfg_target.NAME = args.name
@@ -481,24 +428,10 @@ def main():
     if tensorboard_dir:
         mkdir(tensorboard_dir)
 
-    if get_rank() == 0:
-        logger_target = setup_logger("Maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-        # logger_target.info("config yaml file for target model: {}".format(target_model_config_file))
-        logger_target.info("Local rank: {}".format(args.local_rank))
-        logger_target.info("Using {} GPUs".format(num_gpus))
-        # logger_target.info("Collecting env info (might take some time)")
-        # logger_target.info("\n" + collect_env_info())
-        # open and read the input yaml file, store it on source config_str and display on the screen
-        # with open(target_model_config_file, "r") as cf:
-        #     target_config_str = "\n" + cf.read()
-        # logger_target.info(target_config_str)
-        # logger_target.info("Running with config:\n{}".format(cfg_target))
-    else:
-        logger_target = None
+    logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
+    logger_target.info("config yaml file for target model: {}".format(target_model_config_file))
 
-    # start to train the model
-    train(cfg_source, cfg_target, logger_target, distributed, num_gpus, args.local_rank)
-    # start to test the trained target model
+    train(cfg_source, cfg_target, logger_target)
     # if (cfg_target.STEP != 0 and cfg_target==-1) or cfg_target.CLS_PER_STEP==len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES):
     if cfg_target.STEP != 0:
         test(cfg_target)

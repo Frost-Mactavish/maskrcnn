@@ -4,7 +4,7 @@ import pickle
 from collections import OrderedDict
 
 import torch
-from maskrcnn_benchmark.utils.model_serialization import load_state_dict
+
 from maskrcnn_benchmark.utils.registry import Registry
 
 

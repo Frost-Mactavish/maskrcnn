@@ -1,18 +1,12 @@
 import os
 import random
 import sys
-from email.mime import image
-from operator import gt
-from re import T
-from tracemalloc import is_tracing
 
-import cv2
 import numpy as np
 import scipy.io as scio
 import torch
 import torch.utils.data
-from PIL import Image, ImageFilter
-from maskrcnn_benchmark.data.transforms import Compose
+from PIL import Image
 
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
@@ -21,7 +15,6 @@ else:
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from tools.extract_memory import Mem
-import math
 
 
 class PascalVOCDataset(torch.utils.data.Dataset):

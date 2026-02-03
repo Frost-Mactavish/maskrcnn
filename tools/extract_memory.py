@@ -3,12 +3,12 @@
 import argparse
 import math
 import os
-import pickle
 import random
 import shutil
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
+
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 

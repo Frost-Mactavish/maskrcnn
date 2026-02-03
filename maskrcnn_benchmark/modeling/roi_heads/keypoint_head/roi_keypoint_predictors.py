@@ -1,6 +1,7 @@
+from torch import nn
+
 from maskrcnn_benchmark import layers
 from maskrcnn_benchmark.modeling import registry
-from torch import nn
 
 
 @registry.ROI_KEYPOINT_PREDICTOR.register("KeypointRCNNPredictor")

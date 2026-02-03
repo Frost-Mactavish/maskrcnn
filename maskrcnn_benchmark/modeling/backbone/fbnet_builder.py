@@ -11,6 +11,7 @@ from collections import OrderedDict
 
 import torch
 import torch.nn as nn
+
 from maskrcnn_benchmark.layers import (
     BatchNorm2d,
     Conv2d,

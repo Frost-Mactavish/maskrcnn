@@ -3,8 +3,6 @@
 Utility functions minipulating the prediction layers
 """
 
-import torch
-
 from ..utils import cat
 
 

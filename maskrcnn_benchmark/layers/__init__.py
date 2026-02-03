@@ -1,5 +1,4 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-import torch
 
 from .batch_norm import FrozenBatchNorm2d
 from .dcn.deform_conv_func import deform_conv, modulated_deform_conv

@@ -5,18 +5,16 @@ Implements the Generalized R-CNN framework
 
 import random
 
-import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.image_list import to_image_list
-from torch import nn
-
 from ..backbone import build_backbone
 from ..roi_heads.roi_heads import build_roi_heads
 from ..rpn.rpn import build_rpn
-from ..rpn.utils import permute_and_flatten
 
 
 class GeneralizedRCNN(nn.Module):
@@ -307,7 +305,7 @@ class GeneralizedRCNN(nn.Module):
             bbox_distillation_loss = smooth_l1_loss(modified_target_bboxes, modified_soften_boxes, size_average=False,
                                                     beta=1)
             bbox_distillation_loss = bbox_distillation_loss / (
-                        num_bboxes * num_categories)  # average towards categories and proposals
+                    num_bboxes * num_categories)  # average towards categories and proposals
         else:
             raise ValueError("Wrong loss function for bounding box regression")
 

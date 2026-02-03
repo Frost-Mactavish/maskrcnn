@@ -4,46 +4,22 @@ import argparse
 import datetime
 import logging
 import os
-import random
 import time
-from ast import Str
-from email.mime import image
-from sys import setprofile
+import warnings
 
-import cv2
-import numpy as np
 import torch
-import torch.distributed as dist
-from PIL import Image
+
 from maskrcnn_benchmark.config import \
     cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
 from maskrcnn_benchmark.data.build import make_bbox_loader  # import data set
-from maskrcnn_benchmark.distillation.distillation import calculate_feature_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import calculate_roi_distillation_losses
 # from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.engine.inference import inference  # inference
-from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
 from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
-from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
-from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import get_world_size
-from maskrcnn_benchmark.utils.comm import synchronize, \
+from maskrcnn_benchmark.utils.comm import \
     get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
 from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
-from maskrcnn_benchmark.utils.imports import import_file
-from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
-from torch import nn
-from tqdm import tqdm
-
-import warnings
-
-import os
-import pickle
 from tools.extract_memory import Mem
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -324,13 +300,13 @@ def main():
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_source.CLS_PER_STEP
         cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                          :(args.step - 1) * cfg_source.CLS_PER_STEP]
+            :(args.step - 1) * cfg_source.CLS_PER_STEP]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                                                              args.step * cfg_source.CLS_PER_STEP:]
+            args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(
-                                                                                                                    args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+                                                                                                                args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1

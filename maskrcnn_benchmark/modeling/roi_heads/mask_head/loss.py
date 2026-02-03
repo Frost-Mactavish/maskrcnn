@@ -1,10 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-from maskrcnn_benchmark.layers import smooth_l1_loss
+from torch.nn import functional as F
+
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.modeling.utils import cat
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from torch.nn import functional as F
 
 
 def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):

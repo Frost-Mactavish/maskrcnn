@@ -1,7 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-import torch.nn.functional as F
-from torch import nn
 
 from .inference import make_roi_box_post_processor
 from .loss import make_roi_box_loss_evaluator

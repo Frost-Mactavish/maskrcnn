@@ -1,9 +1,6 @@
 #!/bin/bash
 
-port=$(python tools/get_free_port.py)
-GPU=2
-
-alias exp="python -m torch.distributed.launch --master_port=${port} --nproc_per_node=${GPU} tools/train_incremental.py"
+alias exp="python tools/train_incremental.py"
 shopt -s expand_aliases
 
 

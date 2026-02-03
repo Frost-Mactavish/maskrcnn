@@ -6,6 +6,7 @@ import os
 from collections import defaultdict
 
 import numpy as np
+
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
@@ -40,7 +41,7 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
         pred_boxlists=pred_boxlists,
         gt_boxlists=gt_boxlists,
         iou_thresh=0.5,
-        use_07_metric=False,
+        use_07_metric=True,
     )
     result_str = "mAP: {:.4f}\n".format(result["map"])
     for i, ap in enumerate(result["ap"]):

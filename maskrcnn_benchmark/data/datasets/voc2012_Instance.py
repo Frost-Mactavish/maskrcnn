@@ -1,20 +1,13 @@
-import json
 import os
-import sys
 
-import cv2
-import numpy
 import scipy.io as scio
 import torch
 import torch.utils.data
 import torchvision
 from PIL import Image
-from maskrcnn_benchmark.data.datasets import COCODataset
-from maskrcnn_benchmark.data.transforms import Compose
-from maskrcnn_benchmark.data.transforms.transforms import ToTensor
+
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
-from scipy.io import loadmat
 
 
 def dict_slice(adict, start, end):

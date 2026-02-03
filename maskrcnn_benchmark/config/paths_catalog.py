@@ -5,206 +5,58 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = ""
+    DATA_DIR = "/data/my_code/dataset"
     DATASETS = {
-        "coco_2017_train": {
-            "img_dir": "coco/train2017",
-            "ann_file": "coco/annotations/instances_train2017.json"
-        },
-        "coco_2017_val": {
-            "img_dir": "coco/val2017",
-            "ann_file": "coco/annotations/instances_val2017.json"
-        },
-        "coco_2014_train": {
-            "img_dir": "DATA/COCO2014/train2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_train2014.json"
-        },
-        "coco_2014_val": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_val2014.json"
-        },
-        "coco_2014_minival": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_minival2014.json"
-        },
-        "coco_2014_valminusminival": {
-            "img_dir": "DATA/COCO2014/val2014",
-            "ann_file": "DATA/COCO2014/annotations/instances_valminusminival2014.json"
-        },
-        "keypoints_coco_2014_train": {
-            "img_dir": "coco/train2014",
-            "ann_file": "coco/annotations/person_keypoints_train2014.json",
-        },
-        "keypoints_coco_2014_val": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_val2014.json"
-        },
-        "keypoints_coco_2014_minival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_minival2014.json",
-        },
-        "keypoints_coco_2014_valminusminival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_valminusminival2014.json",
-        },
-        "voc_2007_train": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "train"
-        },
-        "voc_2007_train_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_train2007.json"
-        },
-        "voc_2007_val": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "val"
-        },
-        "voc_2007_val_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_val2007.json"
+        "voc_2007_trainval": {
+            "data_dir": "VOC",
+            "split": "trainval"
         },
         "voc_2007_test": {
-            "data_dir": "data/VOCdevkit/VOC2007",
+            "data_dir": "VOC",
             "split": "test"
         },
-        "voc_2007_test_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_test2007.json"
-        },
-        "voc_2012_train": {
-            "data_dir": "data/voc12/benchmark_RELEASE/dataset/img",
-            "split": "train",
-            "ann_file": "data/voc12/benchmark_RELEASE/dataset/pascal_sbd_train.json"
-        },
-        "voc_2012_train_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_train2012.json"
-        },
-        "voc_2012_val": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "val"
-        },
-        "voc_2012_val_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_val2012.json"
-        },
-        "voc_2012_test": {
-            "data_dir": "data/voc12/benchmark_RELEASE/dataset/img",
-            "split": "val",
-            "ann_file": "data/voc12/benchmark_RELEASE/dataset/pascal_sbd_val.json"
-            # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
-        },
-        "voc_2007_trainval": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "trainval"
-        },
-        "voc_rb_2007_train": {
-            "data_dir": "data/VOCdevkit/VOC2007",
+        "dior_train": {
+            "data_dir": "DIOR",
             "split": "train"
         },
-        "voc_rb_2007_trainval": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "trainval"
+        "dior_test": {
+            "data_dir": "DIOR",
+            "split": "test"
         },
-        "voc_rb_2007_val": {
-            "data_dir": "data/VOCdevkit/VOC2007",
-            "split": "val"
+        "dota_train": {
+            "data_dir": "DOTA_xml",
+            "split": "train"
         },
-        "cityscapes_fine_instanceonly_seg_train_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_train.json"
+        "dota_test": {
+            "data_dir": "DOTA_xml",
+            "split": "test"
         },
-        "cityscapes_fine_instanceonly_seg_val_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_val.json"
-        },
-        "cityscapes_fine_instanceonly_seg_test_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
-        }
     }
 
     @staticmethod
     def get(name):
-        if "coco" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                root=os.path.join(data_dir, attrs["img_dir"]),
-                ann_file=os.path.join(data_dir, attrs["ann_file"]),
-            )
-            return dict(
-                factory="COCODataset",
-                args=args,
-            )
-        elif "voc_2007" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                data_dir=os.path.join(data_dir, attrs["data_dir"]),
-                split=attrs["split"],
-            )
-            return dict(
-                factory="PascalVOCDataset",
-                args=args,
-            )
-        elif "voc_2012" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                data_dir=os.path.join(data_dir, attrs["data_dir"]),
-                split=attrs["split"],
-                ann_file=attrs["ann_file"]
-            )
-            return dict(
-                factory="PascalVOCDataset2012",
-                args=args,
-            )
+        if "voc_2007" in name:
+            factory = "PascalVOCDataset"
         elif "voc_rb_2007" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                data_dir=os.path.join(data_dir, attrs["data_dir"]),
-                split=attrs["split"],
-            )
-            return dict(
-                factory="PascalVOCDataset_ABR",
-                args=args,
-            )
-        elif "voc_rb_2012" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                data_dir=os.path.join(data_dir, attrs["data_dir"]),
-                split=attrs["split"],
-                ann_file=attrs["ann_file"]
-            )
-            return dict(
-                factory="PascalVOCDataset2012",
-                args=args,
-            )
-        elif "automatic_compression" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                predict_dir=os.path.join(data_dir, attrs["predict_dir"])
-            )
-            return dict(
-                factory="AutomaticCompressionDataset",
-                args=args,
-            )
-        elif "compression" in name:
-            data_dir = DatasetCatalog.DATA_DIR
-            attrs = DatasetCatalog.DATASETS[name]
-            args = dict(
-                img_dir=os.path.join(data_dir, attrs["img_dir"]),
-                ann_file=os.path.join(data_dir, attrs["ann_file"]),
-            )
-            return dict(
-                factory="CompressionDataset",
-                args=args,
-            )
-        raise RuntimeError("Dataset not available: {}".format(name))
+            factory = "PascalVOCDataset_ABR"
+        elif "dota" in name:
+            factory = "DOTADataset"
+        elif "dior" in name:
+            factory = "DIORDataset"
+        else:
+            raise RuntimeError("Dataset not available: {}".format(name))
+
+        data_dir = DatasetCatalog.DATA_DIR
+        attrs = DatasetCatalog.DATASETS[name]
+        args = dict(
+            data_dir=os.path.join(data_dir, attrs["data_dir"]),
+            split=attrs["split"],
+        )
+
+        return dict(
+            factory=factory,
+            args=args,
+        )
 
 
 class ModelCatalog(object):

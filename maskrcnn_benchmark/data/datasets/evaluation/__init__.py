@@ -1,6 +1,6 @@
 from maskrcnn_benchmark.data import datasets
-
 from .coco import coco_evaluation
+from .dota import dota_evaluation
 from .voc import voc_evaluation, voc_evaluation_inst
 
 
@@ -21,6 +21,8 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
     if isinstance(dataset, datasets.COCODataset):
         print('do coco evaluation')
         return coco_evaluation(**args)
+    elif isinstance(dataset, datasets.DOTADataset):
+        return dota_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset):
         print('do voc evaluation')
         return voc_evaluation(**args)

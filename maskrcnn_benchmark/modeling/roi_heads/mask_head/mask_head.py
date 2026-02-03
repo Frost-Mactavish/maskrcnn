@@ -1,8 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-from torch import nn
 
+from maskrcnn_benchmark.structures.bounding_box import BoxList
 from .inference import make_roi_mask_post_processor
 from .loss import make_roi_mask_loss_evaluator
 from .roi_mask_feature_extractors import make_roi_mask_feature_extractor

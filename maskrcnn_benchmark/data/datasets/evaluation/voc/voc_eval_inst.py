@@ -7,9 +7,10 @@ from collections import defaultdict
 
 import numpy as np
 import torch
+from tqdm import tqdm
+
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from tqdm import tqdm
 
 
 def do_voc_evaluation_inst(dataset, predictions, output_folder, logger):

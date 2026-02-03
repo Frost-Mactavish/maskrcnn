@@ -1,12 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import bisect
 import copy
-import logging
 
 import torch.utils.data
-from maskrcnn_benchmark.utils.comm import get_world_size
-from maskrcnn_benchmark.utils.imports import import_file
 
+from maskrcnn_benchmark.utils.imports import import_file
 from . import datasets as D
 from . import samplers
 from .collate_batch import BatchCollator
@@ -17,7 +15,7 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
                   new_classes=None, excluded_classes=None, cfg=None):
     """
     Arguments:
-        dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_trian, coco_2014_val, etc
+        dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_train, coco_2014_val, etc
         transforms (callable): transforms to apply to each (image, target) sample
         dataset_catalog (DatasetCatalog): contains the information on how to construct a dataset.
         is_train (bool): whether to setup the dataset for training or testing
@@ -29,17 +27,9 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
         data = dataset_catalog.get(dataset_name)
         factory = getattr(D, data["factory"])
         args = data["args"]
-        if data["factory"] == "PascalVOCDataset":
+        if data["factory"] in ("PascalVOCDataset", "PascalVOCDataset_ABR", "DIORDataset", "DOTADataset"):
             args["use_difficult"] = not is_train
-            args["external_proposal"] = external_proposal  # whether use external proposals
-            args["old_classes"] = old_classes
-            args["new_classes"] = new_classes
-            args["excluded_classes"] = excluded_classes
-            args["is_train"] = is_train
-            args["cfg"] = cfg
-        if data["factory"] == "PascalVOCDataset_ABR":
-            args["use_difficult"] = not is_train  # during training, do not use difficult
-            args["external_proposal"] = external_proposal  # whether use external proposals
+            args["external_proposal"] = external_proposal  # whether to use external proposals
             args["old_classes"] = old_classes
             args["new_classes"] = new_classes
             args["excluded_classes"] = excluded_classes
@@ -110,7 +100,7 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     if is_train:
         images_per_batch = cfg.SOLVER.IMS_PER_BATCH
         assert (
-                    images_per_batch % num_gpus == 0), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
+                images_per_batch % num_gpus == 0), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
             images_per_batch, num_gpus)
         images_per_gpu = images_per_batch // num_gpus
         if compression_not_shuffle:
@@ -121,25 +111,12 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     else:
         images_per_batch = cfg.TEST.IMS_PER_BATCH
         assert (
-                    images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
+                images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
             images_per_batch, num_gpus)
         images_per_gpu = images_per_batch // num_gpus
         shuffle = False if not is_distributed else True
         num_iters = None
         start_iter = 0
-
-    if images_per_gpu > 1:
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "When using more than one image per GPU you may encounter "
-            "an out-of-memory (OOM) error if your GPU does not have "
-            "sufficient memory. If this happens, you can reduce "
-            "SOLVER.IMS_PER_BATCH (for training) or "
-            "TEST.IMS_PER_BATCH (for inference). For training, you must "
-            "also adjust the learning rate and schedule length according "
-            "to the linear scaling rule. See for example: "
-            "https://github.com/facebookresearch/Detectron/blob/master/configs/getting_started/tutorial_1gpu_e2e_faster_rcnn_R-50-FPN.yaml#L14"
-        )
 
     # group images which have similar aspect ratio. In this case, we only
     # group in two cases: those with width / height > 1, and the other way around,
@@ -179,7 +156,7 @@ def make_bbox_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
                      compression_not_shuffle=False, num_gpus=1, rank=0):
     images_per_batch = cfg.TEST.IMS_PER_BATCH
     assert (
-                images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
+            images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
         images_per_batch, num_gpus)
     images_per_gpu = images_per_batch
     shuffle = False if not is_distributed else True
@@ -187,18 +164,6 @@ def make_bbox_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     start_iter = 0
     aspect_grouping = []
     if images_per_gpu > 1:
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "When using more than one image per GPU you may encounter "
-            "an out-of-memory (OOM) error if your GPU does not have "
-            "sufficient memory. If this happens, you can reduce "
-            "SOLVER.IMS_PER_BATCH (for training) or "
-            "TEST.IMS_PER_BATCH (for inference). For training, you must "
-            "also adjust the learning rate and schedule length according "
-            "to the linear scaling rule. See for example: "
-            "https://github.com/facebookresearch/Detectron/blob/master/configs/getting_started/tutorial_1gpu_e2e_faster_rcnn_R-50-FPN.yaml#L14"
-        )
-
         aspect_grouping = [1] if cfg.DATALOADER.ASPECT_RATIO_GROUPING else []
 
     ### ---- import the dataset information  -----###

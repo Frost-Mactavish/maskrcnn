@@ -5,15 +5,14 @@ file
 """
 
 import torch
+from torch.nn import functional as F
+
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
-from torch.nn import functional as F
-
 from .utils import concat_box_prediction_layers
 from ..balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
-from ..utils import cat
 
 
 class RPNLossComputation(object):

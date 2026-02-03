@@ -1,13 +1,10 @@
 import os
 import sys
 
-import cv2
-import numpy
 import scipy.io as scio
 import torch
 import torch.utils.data
 from PIL import Image
-from maskrcnn_benchmark.data.transforms import Compose
 
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
@@ -68,7 +65,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self.final_ids = self.ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.ids)}  # image_index : image_id
 
-        cls = PascalVOCDataset.CLASSES
+        cls = self.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))  # class_name : class_id
 
     def _load_img_from_NEW_and_OLD_cls_without_old_data(self):
@@ -106,11 +103,13 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                     break
             if not repeat_flag:
                 self.final_ids.append(id)
-        # print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+        print(
+            'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
-        cls = PascalVOCDataset.CLASSES
+        cls = self.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))
 
     def _load_img_from_NEW_cls_without_old_data(self):
@@ -147,11 +146,13 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                         break
                 if not repeat_flag:
                     self.final_ids.append(id)
-            # print('voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(self.image_set, len(self.final_ids)))
+            print(
+                'voc.py | load_img_from_NEW_and_OLD_cls_without_old_data | total used number of images in {0}: {1}'.format(
+                    self.image_set, len(self.final_ids)))
 
         # store image ids and class ids
         self.id_to_img_map = {k: v for k, v in enumerate(self.final_ids)}
-        cls = PascalVOCDataset.CLASSES
+        cls = self.CLASSES
         self.class_to_ind = dict(zip(cls, range(len(cls))))
 
     def __getitem__(self, index):
@@ -231,10 +232,12 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         TO_REMOVE = 1
 
         for obj in target.iter("object"):
-            difficult = int(obj.find("difficult").text) == 1
+            # difficult = int(obj.find("difficult").text) == 1
+            difficult = 0
             if not self.keep_difficult and difficult:
                 continue
-            name = obj.find("name").text.lower().strip()
+            # name = obj.find("name").text.lower().strip()
+            name = obj.find("name").text.strip()
 
             old_class_flag = False
             for old in self.old_classes:
@@ -283,11 +286,44 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         return {"height": im_info[0], "width": im_info[1]}
 
     def map_class_id_to_class_name(self, class_id):
-        return PascalVOCDataset.CLASSES[class_id]
+        return self.CLASSES[class_id]
 
     def get_img_id(self, index):
         img_id = self.final_ids[index]
         return img_id
+
+
+class DIORDataset(PascalVOCDataset):
+    CLASSES = (
+        "__background__",
+        "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+        "ship", "tenniscourt", "airport", "chimney", "dam",
+        "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+        "overpass", "stadium", "storagetank", "trainstation", "windmill"
+    )
+
+
+class DOTADataset(PascalVOCDataset):
+    CLASSES = (
+        "__background__",
+        "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",
+        "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
+        "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
+    )
+
+    def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
+                 new_classes=[], excluded_classes=[], is_train=True):
+        super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal,
+                                          old_classes, new_classes, excluded_classes, is_train)
+        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
+
+    def get_img_info(self, index):
+        img_id = self.final_ids[index]
+        anno = ET.parse(self._annopath % img_id).getroot()
+        size = anno.find("size")
+        im_info = tuple(map(int, (size.find("height").text, size.find("width").text)))
+        filename = anno.find("filename").text
+        return {"height": im_info[0], "width": im_info[1], "file_name": filename}
 
 
 def main():

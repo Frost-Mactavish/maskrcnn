@@ -41,9 +41,9 @@ SOLVER:
   IMS_PER_BATCH: 4 # number of images per batch
   MOMENTUM: 0.9
 TEST: # testing strategy
-  IMS_PER_BATCH: 4 # number of images per batch
+  IMS_PER_BATCH: 1 # number of images per batch
 
-OUTPUT_DIR: "output/10-10/LR005_BS4_FILOD" # path to store the result
+OUTPUT_DIR: "output/10-10" # path to store the result
 #TENSORBOARD_DIR: "log/10-10_LR005_BS4" # path to store tensorboard info
 #DTYPE: "float16"
 INCREMENTAL: False
