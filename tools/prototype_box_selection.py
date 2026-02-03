@@ -209,17 +209,14 @@ def main():
         source_model_config_file = f"configs/{args.dataset}/{args.task}/base.yaml"
     else:
         source_model_config_file = f"configs/{args.dataset}/{args.task}/RB_target.yaml"
-    full_name = f"{args.name}/"  # if args.step > 1 else args.name
 
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(source_model_config_file)
 
     base = 'log'
-    # setting the weight for source and target model
     if args.step == 0:
-        cfg_source.MODEL.SOURCE_WEIGHT = f"{cfg_source.OUTPUT_DIR}/model_trimmed.pth"
+        cfg_source.MODEL.SOURCE_WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step}/model_trimmed.pth"
         cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
-        # print(cfg_source.MODEL.SOURCE_WEIGHT)
     elif args.step >= 1:
         cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step}/model_trimmed.pth"
         cfg_source.OUTPUT_DIR = f"{base}/{args.dataset}/{args.task}/{args.name}"

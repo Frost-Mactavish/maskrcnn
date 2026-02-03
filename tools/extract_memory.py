@@ -9,8 +9,8 @@ import shutil
 import numpy as np
 from PIL import Image
 
-from maskrcnn_benchmark.config import \
-    cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.config.paths_catalog import DatasetCatalog
 
 
 class Mem(object):
@@ -32,8 +32,11 @@ class Mem(object):
         self.STEP = step
 
         # dataset path
-        self.root = "data/VOCdevkit/VOC2007"
-        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.jpg")
+        self.root = DatasetCatalog.get(cfg.DATASETS.TRAIN[0])["args"]["data_dir"]
+        if "dota" in cfg.DATASETS.TRAIN[0]:
+            self._imgpath = os.path.join(self.root, "images", "%s.png")
+        else:
+            self._imgpath = os.path.join(self.root, "JPEGImages", "%s.jpg")
 
         # memory name space
         self.current_mem_name = f"{self.mem_type}_{self.mem_size}"

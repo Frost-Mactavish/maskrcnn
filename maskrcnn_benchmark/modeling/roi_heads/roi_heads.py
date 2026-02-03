@@ -83,7 +83,7 @@ def build_roi_heads(cfg, in_channels):
     # individually create the heads, that will be combined together
     # afterwards
 
-    print('roi_heads.py | build_roi_heads | in_channels: {0}'.format(in_channels))
+    # print('roi_heads.py | build_roi_heads | in_channels: {0}'.format(in_channels))
 
     roi_heads = []
     if cfg.MODEL.RETINANET_ON:

@@ -6,7 +6,6 @@ events.out.tfevents.*
 checkpoints/
 log/
 tb_logger/
-output/
 
 
 # Byte-compiled / optimized / DLL files

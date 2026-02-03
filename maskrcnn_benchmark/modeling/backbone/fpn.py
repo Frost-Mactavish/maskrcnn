@@ -97,16 +97,3 @@ class LastLevelP6P7(nn.Module):
         p6 = self.p6(x)
         p7 = self.p7(F.relu(p6))
         return [p6, p7]
-
-
-class FPNWrapper(nn.Module):
-    def __init__(self, backbone):
-        super(FPNWrapper, self).__init__()
-        self.resnet = backbone.body
-        self.fpn = backbone.fpn
-
-    def forward(self, x):
-        features, backbone_features = self.resnet(x)
-        features = self.fpn(features)
-
-        return features, backbone_features
