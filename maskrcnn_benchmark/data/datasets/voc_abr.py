@@ -978,7 +978,9 @@ class DOTADataset(PascalVOCDataset_ABR):
     )
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                 new_classes=[], excluded_classes=[], is_train=True, cfg=None):
-        super().__init__(data_dir, split, use_difficult, transforms, external_proposal, old_classes, new_classes, excluded_classes, is_train, self.is_father, cfg=cfg)
+        super().__init__(data_dir=data_dir, split=split, use_difficult=use_difficult, transforms=transforms,
+                         external_proposal=external_proposal, old_classes=old_classes, new_classes=new_classes,
+                         excluded_classes=excluded_classes, is_train=is_train, cfg=cfg)
         self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
 
     def get_img_info(self, index):

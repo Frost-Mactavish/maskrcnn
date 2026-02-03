@@ -34,7 +34,7 @@ class Mem(object):
         # dataset path
         self.root = DatasetCatalog.get(cfg.DATASETS.TRAIN[0])["args"]["data_dir"]
         if "dota" in cfg.DATASETS.TRAIN[0]:
-            self._imgpath = os.path.join(self.root, "images", "%s.png")
+            self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
         else:
             self._imgpath = os.path.join(self.root, "JPEGImages", "%s.jpg")
 
