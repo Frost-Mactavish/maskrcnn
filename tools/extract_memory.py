@@ -54,7 +54,7 @@ class Mem(object):
             first_num_file_classes = len(self.exemplar)
             assert first_num_file_classes >= self.mem_size, 'The selected rehearsals are not satisfied the setting size!'
         elif self.STEP > 1:
-            self.current_mem_path = os.path.join(f"output/{self.cfg.TASK}/{self.cfg.NAME}", self.current_mem_name)
+            self.current_mem_path = os.path.join(f"log/{self.cfg.DATASET}/{self.cfg.TASK}/{self.cfg.NAME}", self.current_mem_name)
             self.exemplar = os.listdir(self.current_mem_path)
 
         print('--PBS REPORT-- Current prototype boxes path is {0}'.format(self.current_mem_path))

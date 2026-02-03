@@ -26,7 +26,7 @@ MODEL:
     NAME_NEW_CLASSES: [ "helicopter" ]
     NAME_EXCLUDED_CLASSES: [ ]
 DATASETS:
-  TRAIN: ("dota_train",)
+  TRAIN: ("rb_dota_train",)
   TEST: ("dota_test",)
 DATALOADER:
   SIZE_DIVISIBILITY: 0

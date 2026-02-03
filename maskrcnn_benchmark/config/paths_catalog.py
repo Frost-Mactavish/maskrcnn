@@ -15,7 +15,7 @@ class DatasetCatalog(object):
             "data_dir": "VOC",
             "split": "test"
         },
-        "dior_train": {
+        "rb_dior_train": {
             "data_dir": "DIOR",
             "split": "train"
         },
@@ -23,7 +23,7 @@ class DatasetCatalog(object):
             "data_dir": "DIOR",
             "split": "test"
         },
-        "dota_train": {
+        "rb_dota_train": {
             "data_dir": "DOTA_xml",
             "split": "train"
         },
@@ -39,6 +39,10 @@ class DatasetCatalog(object):
             factory = "PascalVOCDataset"
         elif "voc_rb_2007" in name:
             factory = "PascalVOCDataset_ABR"
+        elif "rb_dota" in name:
+            factory = "DOTADataset_ABR"
+        elif "rb_dior" in name:
+            factory = "DIORDataset_ABR"
         elif "dota" in name:
             factory = "DOTADataset"
         elif "dior" in name:

@@ -349,6 +349,7 @@ def main():
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
     cfg_source.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/SRC"
     cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
+    cfg_source.DATASET = args.dataset
     cfg_source.freeze()
 
     # Create target model based on source model
@@ -383,6 +384,7 @@ def main():
     cfg_target.NAME = args.name
     cfg_target.MEM_BUFF = args.memory_buffer
     cfg_target.MEM_TYPE = args.memory_type
+    cfg_target.DATASET = args.dataset
     cfg_target.freeze()
 
     output_dir_target = cfg_target.OUTPUT_DIR

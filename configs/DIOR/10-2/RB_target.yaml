@@ -26,7 +26,7 @@ MODEL:
     NAME_NEW_CLASSES: [ "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor", "overpass", "stadium", "storagetank", "trainstation", "windmill" ]
     NAME_EXCLUDED_CLASSES: [ ]
 DATASETS:
-  TRAIN: ("dior_train",)
+  TRAIN: ("rb_dior_train",)
   TEST: ("dior_test",)
 DATALOADER:
   SIZE_DIVISIBILITY: 0

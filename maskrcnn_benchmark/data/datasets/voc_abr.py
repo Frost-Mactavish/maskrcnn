@@ -959,7 +959,7 @@ class PascalVOCDataset_ABR(PascalVOCDataset):
             return intersection / ba, False
 
 
-class DIORDataset(PascalVOCDataset_ABR):
+class DIORDataset(PascalVOCDataset):
     CLASSES = (
         "__background__",
         "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
@@ -969,7 +969,40 @@ class DIORDataset(PascalVOCDataset_ABR):
     )
 
 
-class DOTADataset(PascalVOCDataset_ABR):
+class DIORDataset_ABR(PascalVOCDataset_ABR):
+    CLASSES = (
+        "__background__",
+        "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+        "ship", "tenniscourt", "airport", "chimney", "dam",
+        "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+        "overpass", "stadium", "storagetank", "trainstation", "windmill"
+    )
+
+
+class DOTADataset(PascalVOCDataset):
+    CLASSES = (
+        "__background__",
+        "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",
+        "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
+        "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
+    )
+    def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
+                 new_classes=[], excluded_classes=[], is_train=True, is_father=True, cfg=None):
+        super().__init__(data_dir=data_dir, split=split, use_difficult=use_difficult, transforms=transforms,
+                         external_proposal=external_proposal, old_classes=old_classes, new_classes=new_classes,
+                         excluded_classes=excluded_classes, is_train=is_train, is_father=is_father, cfg=cfg)
+        self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
+
+    def get_img_info(self, index):
+        img_id = self.final_ids[index]
+        anno = ET.parse(self._annopath % img_id).getroot()
+        size = anno.find("size")
+        im_info = tuple(map(int, (size.find("height").text, size.find("width").text)))
+        filename = anno.find("filename").text
+        return {"height": im_info[0], "width": im_info[1], "file_name": filename}
+
+
+class DOTADataset_ABR(PascalVOCDataset_ABR):
     CLASSES = (
         "__background__",
         "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",

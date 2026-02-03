@@ -26,7 +26,7 @@ MODEL:
     NAME_NEW_CLASSES: [ "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle", "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool" ]
     NAME_EXCLUDED_CLASSES: [ "helicopter" ]
 DATASETS:
-  TRAIN: ("dota_train",)
+  TRAIN: ("rb_dota_train",)
   TEST: ("dota_test",)
 DATALOADER:
   SIZE_DIVISIBILITY: 0
