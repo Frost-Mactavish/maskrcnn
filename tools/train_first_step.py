@@ -14,8 +14,8 @@ from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.comm import get_rank
-from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from maskrcnn_benchmark.utils.logger import setup_logger
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -42,7 +42,7 @@ def train(cfg):
         start_iter=arguments["iteration"],
     )
 
-    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD  # number of iteration to store parameter value in pth file
+    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
     do_train(
         model,
@@ -107,17 +107,6 @@ def main():
         type=str,
     )
     parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=0
-    )
-    parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
-    )
-    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -139,10 +128,8 @@ def main():
     logger.info(args)
     logger.info("Loaded configuration file {}".format(args.config_file))
 
-    model = train(cfg)
-
-    if not args.skip_test:
-        run_test(cfg)
+    train(cfg)
+    run_test(cfg)
 
 
 if __name__ == "__main__":

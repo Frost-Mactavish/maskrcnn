@@ -153,11 +153,8 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
 
 
 def make_bbox_loader(cfg, is_train=True, is_distributed=False, start_iter=0, external_proposal=False,
-                     compression_not_shuffle=False, num_gpus=1, rank=0):
+                     compression_not_shuffle=False, rank=0):
     images_per_batch = cfg.TEST.IMS_PER_BATCH
-    assert (
-            images_per_batch % num_gpus == 0), "TEST.IMS_PER_BATCH ({}) must be divisible by the number of GPUs ({}) used.".format(
-        images_per_batch, num_gpus)
     images_per_gpu = images_per_batch
     shuffle = False if not is_distributed else True
     num_iters = None
@@ -182,7 +179,7 @@ def make_bbox_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     data_loaders = []
     for i, dataset in enumerate(datasets):
         print(f"Dataset {dataset_list[i]} contains {len(dataset)} images.")
-        sampler = make_data_sampler(dataset, shuffle, is_distributed, num_gpus, rank)
+        sampler = make_data_sampler(dataset, shuffle, is_distributed, 1, rank)
         batch_sampler = make_batch_data_sampler(dataset, sampler, aspect_grouping, images_per_gpu, num_iters,
                                                 start_iter)
         collator = BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)

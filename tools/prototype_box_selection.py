@@ -1,5 +1,3 @@
-# Set up custom environment before nearly anything else is imported
-# NOTE: this should be the first import (no not reorder)
 import argparse
 import datetime
 import logging
@@ -9,19 +7,14 @@ import warnings
 
 import torch
 
-from maskrcnn_benchmark.config import \
-    cfg  # import default model configuration: config/defaults.py, config/paths_catalog.py, yaml file
-from maskrcnn_benchmark.data.build import make_bbox_loader  # import data set
-# from torch.utils.tensorboard import SummaryWriter
-from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.data.build import make_bbox_loader
+from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.comm import \
-    get_rank  # related to multi-gpu training; when usong 1 gpu, get_rank() will return 0
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
+from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 from tools.extract_memory import Mem
-
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -29,20 +22,18 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
     old_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES
     new_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
 
-    # record log information
     logger = logging.getLogger("maskrcnn_benchmark_last_model.trainer")
     logger.info("Start sampling")
-    meters = MetricLogger(delimiter="  ")  # used to record
+    meters = MetricLogger(delimiter="  ")
 
     #################################################################
     # extract the feature maps for each boxes per classes in images #
     #################################################################
 
     # Start extracting!
-    max_iter = len(
-        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
+    max_iter = len(data_loader)
     data_iter = iter(data_loader)
-    model_source.eval()  # set the source model in inference mode
+    model_source.eval()
     start_training_time = time.time()
     end = time.time()
 
@@ -56,8 +47,8 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
         # print("Current load data is {0}/{1}".format(i, len(data_loader)))
         data_time = time.time() - end
 
-        images = images.to(device)  # move images to the device
-        targets = [target.to(device) for target in targets]  # move targets (labels) to the device
+        images = images.to(device)
+        targets = [target.to(device) for target in targets]
 
         # extract the features for each rois
         with torch.no_grad():
@@ -68,7 +59,6 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
         roi_align_features = torch.mean(roi_align_features.cpu(), dim=1).tolist()  # [9, 1024, 7, 7]
 
         # print(target_scores.shape)
-        # time used to do one batch processing
         batch_time = time.time() - end
         end = time.time()
         meters.update(time=batch_time, data=data_time)
@@ -125,7 +115,7 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
     return all_bboxes_info
 
 
-def selector(cfg_source, num_gpus):
+def selector(cfg_source):
     current_mem_file = f"{cfg_source.MEM_TYPE}_{cfg_source.MEM_BUFF}"
 
     # creat or load the memory file
@@ -165,7 +155,7 @@ def selector(cfg_source, num_gpus):
         arguments_source.update(extra_checkpoint_data_source)
 
         # load training data
-        bbox_loader = make_bbox_loader(cfg_source, is_train=False, num_gpus=num_gpus, rank=get_rank())
+        bbox_loader = make_bbox_loader(cfg_source, is_train=False, rank=get_rank())
 
         # get the memory from the model
         all_bboxes_info = extract_bboxes_and_features(model_source, bbox_loader, device, cfg_source)
@@ -180,57 +170,14 @@ def selector(cfg_source, num_gpus):
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-
     parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=0
+        "-n", "--name",
+        default="ABR",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=42
-    )
-    parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--rpn",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--feat",
-        default="no",
-        type=str, choices=['no', 'std', 'align', 'att']
-    )
-    parser.add_argument(
-        "--uce",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--init",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--inv",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--mask",
-        default=1.,
-        type=float,
-    )
-    parser.add_argument(
-        "--cls",
-        default=1.,
-        type=float,
+        "-d", "--dataset",
+        type=str,
+        default="DIOR"
     )
     parser.add_argument(
         "-t", "--task",
@@ -238,18 +185,8 @@ def main():
         default="10-10"
     )
     parser.add_argument(
-        "-n", "--name",
-        default="LR005_BS4_FILOD",
-    )
-    parser.add_argument(
         "-s", "--step",
         default=0, type=int,
-    )
-    parser.add_argument(
-        "-cvd", "--cuda_visible_devices",
-        type=str,
-        help="Select the specific GPUs",
-        default="0"
     )
     parser.add_argument(
         "-mb", "--memory_buffer",
@@ -267,31 +204,25 @@ def main():
     )
 
     args = parser.parse_args()
-    # setting the corresponding GPU
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_visible_devices
 
     if args.step == 0:
-        source_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x.yaml"
+        source_model_config_file = f"configs/{args.dataset}/{args.task}/base.yaml"
     else:
-        source_model_config_file = f"configs/voc/{args.task}/e2e_faster_rcnn_R_50_C4_4x_RB_Target_model.yaml"
+        source_model_config_file = f"configs/{args.dataset}/{args.task}/RB_target.yaml"
     full_name = f"{args.name}/"  # if args.step > 1 else args.name
-
-    if args.local_rank != 0:
-        return
-    num_gpus = 1
 
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(source_model_config_file)
 
-    base = 'output'
+    base = 'log'
     # setting the weight for source and target model
     if args.step == 0:
         cfg_source.MODEL.SOURCE_WEIGHT = f"{cfg_source.OUTPUT_DIR}/model_trimmed.pth"
         cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
         # print(cfg_source.MODEL.SOURCE_WEIGHT)
     elif args.step >= 1:
-        cfg_source.MODEL.WEIGHT = f"{base}/{args.task}/{args.name}/STEP{args.step}/model_trimmed.pth"
-        cfg_source.OUTPUT_DIR = f"{base}/{args.task}/{args.name}"
+        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step}/model_trimmed.pth"
+        cfg_source.OUTPUT_DIR = f"{base}/{args.dataset}/{args.task}/{args.name}"
         if cfg_source.OUTPUT_DIR:
             mkdir(cfg_source.OUTPUT_DIR)
 
@@ -305,8 +236,7 @@ def main():
         cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
-        cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(
-                                                                                                                args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+        cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(args.step - 1) * cfg_source.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1
@@ -323,7 +253,7 @@ def main():
     cfg_source.freeze()
 
     # use current model to select the prototype boxes
-    selector(cfg_source, num_gpus)
+    selector(cfg_source)
 
 
 if __name__ == "__main__":
