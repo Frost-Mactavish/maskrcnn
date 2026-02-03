@@ -39,7 +39,21 @@ for s in {1..3}; do
   echo Done
 done
 
-# task=10-1
-# for s in {1..10}; do
-#   exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 1 -s $s
-# done
+
+alias exp_dota="exp -d DOTA"
+
+task=10-1
+for s in {1..5}; do
+  exp_dota -t ${task} -n ILOD -s $s
+  exp_dota -t ${task} -n FILOD -s $s --rpn --feat std --cls 1.
+  exp_dota -t ${task} -n MMA --rpn --uce --dist_type uce --cls 1 -s $s
+  echo Done
+done
+
+task=5-5
+for s in 1 2; do
+  exp_dota -t ${task} -n ILOD -s $s
+  exp_dota -t ${task} -n FILOD -s $s --rpn --feat std --cls 1.
+  exp_dota -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.5 -s $s
+  echo Done
+done
