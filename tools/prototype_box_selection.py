@@ -140,21 +140,19 @@ def selector(cfg_source):
         print("The prototype box images for first step have existed!!")
         all_bboxes_info = None
     else:  # Update the prototype boxes for current classes
-        model_source = build_detection_model(cfg_source)  # create the source model
-        device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
-        model_source.to(device)  # move source model to gpu
+        model_source = build_detection_model(cfg_source)
+        device = torch.device(cfg_source.MODEL.DEVICE)
+        model_source.to(device)
 
         arguments_source = {}
         arguments_source["iteration"] = 0
-        # path to store the trained parameter value
+
         output_dir_source = cfg_source.OUTPUT_DIR + f"STEP{cfg_source.STEP}"
 
-        # create check pointer for source model & load the pre-trained model parameter to source model
         checkpointer_source = DetectronCheckpointer(cfg_source, model_source, save_dir=output_dir_source)
         extra_checkpoint_data_source = checkpointer_source.load(cfg_source.MODEL.WEIGHT)
         arguments_source.update(extra_checkpoint_data_source)
 
-        # load training data
         bbox_loader = make_bbox_loader(cfg_source, is_train=False, rank=get_rank())
 
         # get the memory from the model
