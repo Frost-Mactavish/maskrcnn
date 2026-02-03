@@ -13,17 +13,17 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.data import make_data_loader  # import data set
-from maskrcnn_benchmark.engine.inference import inference  # inference
-from maskrcnn_benchmark.engine.trainer import reduce_loss_dict  # when multiple gpus are used, reduce the loss
-from maskrcnn_benchmark.modeling.detector import build_detection_model  # used to create model
-from maskrcnn_benchmark.solver import make_lr_scheduler  # learning rate updating strategy
-from maskrcnn_benchmark.solver import make_optimizer  # setting the optimizer
+from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.engine.inference import inference
+from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
+from maskrcnn_benchmark.modeling.detector import build_detection_model
+from maskrcnn_benchmark.solver import make_lr_scheduler
+from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.comm import get_rank
-from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
+from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
 from maskrcnn_benchmark.distillation.distillation import (
     calculate_feature_distillation_loss,
@@ -36,15 +36,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def do_train(model_source, model_target, data_loader, optimizer, scheduler, checkpointer_target,
              device, checkpoint_period, arguments_target, summary_writer, cfg):
-    # record log information
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
     logger.info("Start training")
-    meters = MetricLogger(delimiter="  ")  # used to record
-    max_iter = len(
-        data_loader)  # data loader rewrites the len() function and allows it to return the number of batches (cfg.SOLVER.MAX_ITER)
-    start_iter = arguments_target["iteration"]  #
-    model_target.train()  # set the target model in training mode
-    model_source.eval()  # set the source model in inference mode
+    meters = MetricLogger(delimiter="  ")
+    max_iter = len(data_loader)
+    start_iter = arguments_target["iteration"]
+    model_target.train()
+    model_source.eval()
     start_training_time = time.time()
     end = time.time()
     average_distillation_loss = 0
@@ -56,8 +54,8 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         iteration = iteration + 1
         arguments_target["iteration"] = iteration
 
-        images = images.to(device)  # move images to the device
-        targets = [target.to(device) for target in targets]  # move targets (labels) to the device
+        images = images.to(device)
+        targets = [target.to(device) for target in targets]
 
         dist_type = cfg.DIST.TYPE
 
@@ -67,7 +65,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         loss_dict_target, feature_target, _, _, rpn_output_target, target_proposals, _, target_soften_results \
             = model_target(images, targets, rpn_output_source=rpn_output_source)
-        faster_rcnn_losses = sum(loss for loss in loss_dict_target.values())  # summarise the losses for faster rcnn
+        faster_rcnn_losses = sum(loss for loss in loss_dict_target.values())
 
         target_result, target_mask_logits, roi_align_features_target = model_target.forward(images, targets,
                                                                                             features=feature_target,
@@ -102,7 +100,6 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         losses = faster_rcnn_losses + distillation_losses
 
-        # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict_target)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(loss=losses_reduced, **loss_dict_reduced)
@@ -123,24 +120,19 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         optimizer.step()
         scheduler.step()
 
-        # time used to do one batch processing
         batch_time = time.time() - end
         end = time.time()
         meters.update(time=batch_time, data=data_time)
-        # according to time'moving average to calculate how much time needed to finish the training
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
-        # for every 50 iterations, display the training status
         if iteration % 100 == 0 or iteration == max_iter:
             logger.info(
                 meters.delimiter.join(["eta: {eta}", "iter: {iter}", "{meters}", "lr: {lr:.6f}", "max mem: {memory:.0f}"
                                        ]).format(eta=eta_string, iter=iteration, meters=str(meters),
                                                  lr=optimizer.param_groups[0]["lr"],
                                                  memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
-            # write to tensorboardX
             loss_global_avg = meters.loss.global_avg
             loss_median = meters.loss.median
-            # print('loss global average: {0}, loss median: {1}'.format(meters.loss.global_avg, meters.loss.median))
             summary_writer.add_scalar('train_loss_global_avg', loss_global_avg, iteration)
             summary_writer.add_scalar('train_loss_median', loss_median, iteration)
             summary_writer.add_scalar('train_loss_raw', losses_reduced, iteration)
@@ -149,76 +141,56 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             summary_writer.add_scalar('distillation_losses_avg', average_distillation_loss, iteration)
             summary_writer.add_scalar('faster_rcnn_losses_avg', average_faster_rcnn_loss, iteration)
 
-        # Every time meets the checkpoint_period, save the target model (parameters)
         if iteration % checkpoint_period == 0:
             checkpointer_target.save("model_last", **arguments_target)
-        # When meets the last iteration, save the target model (parameters)
         if iteration == max_iter:
             checkpointer_target.save("model_final", **arguments_target)
-    # Display the total used training time
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
     logger.info("Total training time: {} ({:.4f} s / it)".format(total_time_str, total_training_time / max_iter))
 
 
-def initalizeTargetCls_MiB(cfg, model_source, model_target):
-    n_old_classes = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-    cls_score_source = model_source.roi_heads.box.predictor.cls_score
-    with torch.no_grad():
-        model_target.roi_heads.box.predictor.cls_score.weight[n_old_classes + 1:] = cls_score_source.weight[0]
-        model_target.roi_heads.box.predictor.cls_score.bias[n_old_classes + 1:] = \
-            cls_score_source.bias[0] - torch.log(torch.Tensor([n_old_classes]).to(cls_score_source.bias.device))
-    return model_target
-
-
 def train(cfg_source, cfg_target, logger_target):
-    model_source = build_detection_model(cfg_source)  # create the source model
-    model_target = build_detection_model(cfg_target)  # create the target model
-    device = torch.device(cfg_source.MODEL.DEVICE)  # default is "cuda"
-    model_target.to(device)  # move target model to gpu
-    model_source.to(device)  # move source model to gpu
-    optimizer = make_optimizer(cfg_target, model_target)  # config optimization strategy
-    scheduler = make_lr_scheduler(cfg_target, optimizer)  # config learning rate
-    # create a parameter dictionary and initialize the iteration number to 0
+    device = torch.device(cfg_source.MODEL.DEVICE)
+
+    model_source = build_detection_model(cfg_source)
+    model_target = build_detection_model(cfg_target)
+    model_target.to(device)
+    model_source.to(device)
+
+    optimizer = make_optimizer(cfg_target, model_target)
+    scheduler = make_lr_scheduler(cfg_target, optimizer)
+
     arguments_target = {}
     arguments_target["iteration"] = 0
     arguments_source = {}
     arguments_source["iteration"] = 0
-    # path to store the trained parameter value
+
     output_dir_target = cfg_target.OUTPUT_DIR
     output_dir_source = cfg_source.OUTPUT_DIR
-    # create summary writer for tensorboard
     summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
-    # when only use 1 gpu, get_rank() returns 0
+
     save_to_disk = get_rank() == 0
-    # create check pointer for source model & load the pre-trained model parameter to source model
     checkpointer_source = DetectronCheckpointer(cfg_source, model_source, optimizer=None, scheduler=None,
                                                 save_dir=output_dir_source,
                                                 save_to_disk=save_to_disk)
     extra_checkpoint_data_source = checkpointer_source.load(cfg_source.MODEL.WEIGHT)
-    # create check pointer for target model & load the pre-trained model parameter to target model
+
     checkpointer_target = DetectronCheckpointer(cfg_target, model_target, optimizer=optimizer, scheduler=scheduler,
                                                 save_dir=output_dir_target,
                                                 save_to_disk=save_to_disk, logger=logger_target)
     extra_checkpoint_data_target = checkpointer_target.load(cfg_target.MODEL.WEIGHT)
-    # dict updating method to update the parameter dictionary for source model
-    arguments_source.update(extra_checkpoint_data_source)
-    # dict updating method to update the parameter dictionary for target model
-    arguments_target.update(extra_checkpoint_data_target)
 
-    # Parameter initialization
-    if cfg_target.DIST.INIT:
-        model_target = initalizeTargetCls_MiB(cfg_target, model_source, model_target)
+    arguments_source.update(extra_checkpoint_data_source)
+    arguments_target.update(extra_checkpoint_data_target)
 
     print('start iteration: {0}'.format(arguments_target["iteration"]))
 
-    # load training data
     data_loader = make_data_loader(cfg_target, is_train=True, start_iter=arguments_target["iteration"])
     print('finish loading data')
-    # number of iteration to store parameter value in pth file
+
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
 
-    # train the model
     do_train(model_source, model_target, data_loader,
               optimizer, scheduler, checkpointer_target,
              device, checkpoint_period, arguments_target,
@@ -316,11 +288,6 @@ def main():
         action='store_true'
     )
     parser.add_argument(
-        "--init",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
         "--cls",
         default=1.,
         type=float,
@@ -329,12 +296,6 @@ def main():
         "--dist_type",
         default="l2",
         type=str, choices=['uce', 'ce', 'ce_ada', 'ce_all', 'l2', 'none']
-    )
-    parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
     )
 
     args = parser.parse_args()
@@ -345,15 +306,15 @@ def main():
     cfg_source.merge_from_file(target_model_config_file)
     if args.step >= 2:
         base = 'log'
-        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
+        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
         cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
-    cfg_source.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name + "/SRC"
-    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
+    cfg_source.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/SRC"
+    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
     cfg_source.freeze()
 
     # LOAD THEN MODIFY PARS FROM CLI
@@ -363,7 +324,7 @@ def main():
     #     cfg_target.MODEL.WEIGHT = f"output/{args.name}/model_trimmed.pth"
     if args.step >= 2:
         base = 'log'
-        cfg_target.MODEL.WEIGHT = f"{base}/{args.dataset}_{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
+        cfg_target.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
@@ -387,10 +348,9 @@ def main():
         cfg_target.DIST.CLS = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) / \
                               cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
     cfg_target.DIST.TYPE = args.dist_type
-    cfg_target.DIST.INIT = args.init
-    cfg_target.OUTPUT_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
+    cfg_target.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
     cfg_target.INCREMENTAL = args.uce
-    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "_" + args.task + "/" + full_name
+    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
     cfg_target.TASK = args.task
     cfg_target.STEP = args.step
     cfg_target.NAME = args.name

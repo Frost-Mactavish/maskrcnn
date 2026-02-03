@@ -41,5 +41,5 @@ SOLVER:
   MOMENTUM: 0.9
 TEST: # testing strategy
   IMS_PER_BATCH: 8 # number of images per batch
-OUTPUT_DIR: "log/DIOR_5-15/STEP0" # path to store the result
-TENSORBOARD_DIR: "log/DIOR_5-15/STEP0" # path to store tensorboard info
+OUTPUT_DIR: "log/DIOR/5-15/STEP0" # path to store the result
+TENSORBOARD_DIR: "log/DIOR/5-15/STEP0" # path to store tensorboard info

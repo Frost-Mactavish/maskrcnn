@@ -12,8 +12,8 @@ from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.comm import get_rank
-from maskrcnn_benchmark.utils.logger import setup_logger  # related to logging model(output training status)
-from maskrcnn_benchmark.utils.miscellaneous import mkdir  # related to folder creation
+from maskrcnn_benchmark.utils.logger import setup_logger
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 from torch.utils.tensorboard import SummaryWriter
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -27,35 +27,25 @@ def train(cfg):
     optimizer = make_optimizer(cfg, model)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
-    # create a parameter dictionary and initialize the iteration number to 0
     arguments = {}
     arguments["iteration"] = 0
 
-    # path to store the trained parameter value
     output_dir = cfg.OUTPUT_DIR
 
-    # create check pointer
     checkpointer = DetectronCheckpointer(cfg, model, optimizer, scheduler, output_dir, True)
 
-    # load the pre-trained model parameter to current model
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
 
-    # dict updating method to update the parameter dictionary
     arguments.update(extra_checkpoint_data)
 
-    # load training data
-    # type of data_loader is list, type of its inside elements is torch.utils.data.DataLoader
-    # When is_train=True, make sure cfg.DATASETS.TRAIN is a list
-    # it has to point to one or multiple annotation files
     data_loader = make_data_loader(
         cfg,
         is_train=True,
         start_iter=arguments["iteration"],
     )
 
-    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD  # number of iteration to store parameter value in pth file
+    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
-    # train the model: call function ./maskrcnn_benchmark/engine/trainer.py do_train() function
     do_train(
         model,
         data_loader,
@@ -117,17 +107,6 @@ def main():
         type=str,
     )
     parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=0
-    )
-    parser.add_argument(
-        "--skip-test",
-        dest="skip_test",
-        help="Do not test the final model",
-        action="store_true",
-    )
-    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -148,10 +127,8 @@ def main():
     logger.info(args)
     logger.info("Loaded configuration file {}".format(args.config_file))
 
-    model = train(cfg)
-
-    if not args.skip_test:
-        run_test(cfg)
+    train(cfg)
+    run_test(cfg)
 
 
 if __name__ == "__main__":
