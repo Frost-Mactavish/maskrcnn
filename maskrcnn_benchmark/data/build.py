@@ -27,7 +27,11 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
         data = dataset_catalog.get(dataset_name)
         factory = getattr(D, data["factory"])
         args = data["args"]
-        if data["factory"] in ("PascalVOCDataset", "PascalVOCDataset_ABR", "DIORDataset", "DOTADataset"):
+        if data["factory"] in (
+            "PascalVOCDataset", "PascalVOCDataset_ABR", 
+            "DIORDataset", "DIORDataset_ABR", 
+            "DOTADataset", "DOTADataset_ABR"
+        ):
             args["use_difficult"] = not is_train
             args["external_proposal"] = external_proposal  # whether to use external proposals
             args["old_classes"] = old_classes
