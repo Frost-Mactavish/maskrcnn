@@ -1,13 +1,13 @@
 import logging
 import os
 import tempfile
-from collections import OrderedDict
-
 import torch
+from collections import OrderedDict
+from tqdm import tqdm
+
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from tqdm import tqdm
 
 COCO_CATS = ['__background__', 'airplane', 'apple', 'backpack', 'banana', 'baseball bat', 'baseball glove', 'bear',
              'bed', 'bench', 'bicycle', 'bird', 'boat', 'book', 'bottle', 'bowl', 'broccoli', 'bus', 'cake', 'car',

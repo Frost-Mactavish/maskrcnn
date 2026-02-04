@@ -1,19 +1,26 @@
 import argparse
 import datetime
 import logging
+import math
+import numpy as np
 import os
 import random
-import time
-import warnings
-from tqdm import tqdm
 import sys
-import math
-
-import numpy as np
+import time
 import torch
+import warnings
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
+from maskrcnn_benchmark.distillation.distillation import (
+    calculate_feature_distillation_loss,
+    calculate_roi_align_distillation,
+    calculate_roi_distillation_losses,
+    calculate_rpn_distillation_loss
+)
 from maskrcnn_benchmark.engine.inference import inference
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
 from maskrcnn_benchmark.modeling.detector import build_detection_model
@@ -24,13 +31,7 @@ from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
-from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
-from maskrcnn_benchmark.distillation.distillation import (
-    calculate_feature_distillation_loss,
-    calculate_roi_align_distillation,
-    calculate_roi_distillation_losses,
-    calculate_rpn_distillation_loss
-)
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -48,7 +49,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     average_distillation_loss = 0
     average_faster_rcnn_loss = 0
 
-    for iteration, (images, targets, _, idx) in tqdm(enumerate(data_loader, start_iter), total=len(data_loader)):
+    for iteration, (images, targets, _, idx) in tqdm(enumerate(data_loader, start_iter), total=max_iter):
 
         data_time = time.time() - end
         iteration = iteration + 1
@@ -192,9 +193,9 @@ def train(cfg_source, cfg_target, logger_target):
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
 
     do_train(model_source, model_target, data_loader,
-              optimizer, scheduler, checkpointer_target,
+             optimizer, scheduler, checkpointer_target,
              device, checkpoint_period, arguments_target,
-               summary_writer, cfg_target)
+             summary_writer, cfg_target)
 
     checkpointer_target.save("model_trimmed", trim=True, **arguments_target)
 
@@ -236,13 +237,8 @@ def test(cfg):
             summary_writer=summary_writer,
             cfg=cfg
         )
-        with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
-            fid.write(cfg.NAME)
-            fid.write(",")
-            fid.write(str(cfg.STEP))
-            fid.write(",")
-            fid.write(",".join([str(x) for x in result["ap"][1:]]))
-            fid.write("\n")
+        with open(os.path.join("log", f"result.txt"), "a") as fid:
+            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}: {result:.2f}\n")
 
 
 def main():

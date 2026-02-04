@@ -16,15 +16,15 @@ OR:
 Custom implementations may be written in user code and hooked in via the
 `register_*` functions.
 """
-from collections import namedtuple
-
 import torch.nn.functional as F
+from collections import namedtuple
+from torch import nn
+
 from maskrcnn_benchmark.layers import Conv2d
 from maskrcnn_benchmark.layers import DFConv2d
 from maskrcnn_benchmark.layers import FrozenBatchNorm2d
 from maskrcnn_benchmark.modeling.make_layers import group_norm
 from maskrcnn_benchmark.utils.registry import Registry
-from torch import nn
 
 # ResNet stage specification
 StageSpec = namedtuple(

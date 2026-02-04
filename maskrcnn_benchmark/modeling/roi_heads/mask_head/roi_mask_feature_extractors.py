@@ -1,10 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-from maskrcnn_benchmark.modeling import registry
-from maskrcnn_benchmark.modeling.make_layers import make_conv3x3
-from maskrcnn_benchmark.modeling.poolers import Pooler
 from torch import nn
 from torch.nn import functional as F
 
+from maskrcnn_benchmark.modeling import registry
+from maskrcnn_benchmark.modeling.make_layers import make_conv3x3
+from maskrcnn_benchmark.modeling.poolers import Pooler
 from ..box_head.roi_box_feature_extractors import ResNet50Conv5ROIFeatureExtractor
 
 registry.ROI_MASK_FEATURE_EXTRACTORS.register(

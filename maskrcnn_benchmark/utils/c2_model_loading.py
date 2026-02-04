@@ -1,9 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
 import pickle
+import torch
 from collections import OrderedDict
 
-import torch
 from maskrcnn_benchmark.utils.registry import Registry
 
 

@@ -2,6 +2,7 @@ import logging
 
 from .dota_eval import do_dota_evaluation
 
+
 def dota_evaluation(dataset, predictions, output_folder, box_only, file_list, cfg, **_):
     logger = logging.getLogger("maskrcnn_benchmark_target_model.inference")
     if box_only:

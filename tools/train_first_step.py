@@ -1,8 +1,9 @@
 import argparse
 import os
-import warnings
-
 import torch
+import warnings
+from torch.utils.tensorboard import SummaryWriter
+
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.engine.inference import inference
@@ -14,7 +15,7 @@ from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
-from torch.utils.tensorboard import SummaryWriter
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -27,15 +28,11 @@ def train(cfg):
     optimizer = make_optimizer(cfg, model)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
-    arguments = {}
-    arguments["iteration"] = 0
-
+    arguments = {"iteration": 0}
     output_dir = cfg.OUTPUT_DIR
 
     checkpointer = DetectronCheckpointer(cfg, model, optimizer, scheduler, output_dir, True)
-
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
-
     arguments.update(extra_checkpoint_data)
 
     data_loader = make_data_loader(

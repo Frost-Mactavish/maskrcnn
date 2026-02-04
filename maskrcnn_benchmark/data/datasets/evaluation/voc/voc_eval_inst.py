@@ -2,14 +2,14 @@
 # (See https://github.com/chainer/chainercv/blob/master/chainercv/evaluations/eval_detection_voc.py)
 from __future__ import division
 
-import os
-from collections import defaultdict
-
 import numpy as np
+import os
 import torch
+from collections import defaultdict
+from tqdm import tqdm
+
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from tqdm import tqdm
 
 
 def do_voc_evaluation_inst(dataset, predictions, output_folder, logger):

@@ -1,4 +1,6 @@
 import torch
+from torch.nn import functional as F
+
 from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import (
     BalancedPositiveNegativeSampler,
 )
@@ -7,7 +9,6 @@ from maskrcnn_benchmark.modeling.utils import cat
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from maskrcnn_benchmark.structures.keypoint import keypoints_to_heat_map
-from torch.nn import functional as F
 
 
 def project_keypoints_to_heatmap(keypoints, proposals, discretization_size):

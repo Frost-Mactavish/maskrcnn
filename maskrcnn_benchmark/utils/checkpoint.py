@@ -1,8 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
 import os
-
 import torch
+
 from maskrcnn_benchmark.utils.c2_model_loading import load_c2_format
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.model_serialization import load_state_dict

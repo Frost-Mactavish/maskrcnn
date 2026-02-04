@@ -7,10 +7,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import copy
 import logging
 import math
-from collections import OrderedDict
-
 import torch
 import torch.nn as nn
+from collections import OrderedDict
+
 from maskrcnn_benchmark.layers import (
     BatchNorm2d,
     Conv2d,

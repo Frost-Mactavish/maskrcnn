@@ -1,8 +1,9 @@
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.rpn.utils import permute_and_flatten
-from torch import nn
 
 
 def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss=None, bbox_loss=None,

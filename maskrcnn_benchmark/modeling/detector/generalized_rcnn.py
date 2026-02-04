@@ -4,14 +4,13 @@ Implements the Generalized R-CNN framework
 """
 
 import random
-
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.image_list import to_image_list
-from torch import nn
-
 from ..backbone import build_backbone
 from ..roi_heads.roi_heads import build_roi_heads
 from ..rpn.rpn import build_rpn

@@ -1,8 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-import random
-
 import cv2
 import numpy
+import random
 import torchvision
 from torchvision.transforms import functional as F
 

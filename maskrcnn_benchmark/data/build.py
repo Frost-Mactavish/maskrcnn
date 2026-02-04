@@ -1,10 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import bisect
 import copy
-
 import torch.utils.data
-from maskrcnn_benchmark.utils.imports import import_file
 
+from maskrcnn_benchmark.utils.imports import import_file
 from . import datasets as D
 from . import samplers
 from .collate_batch import BatchCollator

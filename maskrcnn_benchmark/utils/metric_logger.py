@@ -1,8 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+import torch
 from collections import defaultdict
 from collections import deque
-
-import torch
 
 
 class SmoothedValue(object):

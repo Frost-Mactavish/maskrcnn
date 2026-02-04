@@ -1,17 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import logging
-import os
-
 import numpy as np
+import os
 import torch
-from maskrcnn_benchmark.data.datasets.evaluation import evaluate
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from tqdm import tqdm
 
+from maskrcnn_benchmark.data.datasets import DOTADataset
+from maskrcnn_benchmark.data.datasets.evaluation import evaluate
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from ..structures.segmentation_mask import SegmentationMask
 from ..utils.comm import is_main_process, get_world_size
 from ..utils.timer import Timer, get_time_str
-from maskrcnn_benchmark.data.datasets import DOTADataset
 
 
 def bb_intersection_over_union(boxA, boxB):
@@ -174,8 +173,9 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions, back_predictions, file_list = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal,
-                                                       summary_writer)
+    predictions, back_predictions, file_list = compute_on_dataset(model, data_loader, device, inference_timer,
+                                                                  external_proposal,
+                                                                  summary_writer)
 
     # wait for all processes to complete before measuring the time
     # synchronize()

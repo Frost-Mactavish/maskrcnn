@@ -1,7 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-from bisect import bisect_right
-
 import torch
+from bisect import bisect_right
 
 
 # FIXME ideally this would be achieved with a CombinedLRScheduler,

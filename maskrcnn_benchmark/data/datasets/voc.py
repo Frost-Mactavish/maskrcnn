@@ -1,7 +1,6 @@
 import os
-import sys
-
 import scipy.io as scio
+import sys
 import torch
 import torch.utils.data
 from PIL import Image
@@ -313,7 +312,7 @@ class DOTADataset(PascalVOCDataset):
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True):
-        super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal, 
+        super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal,
                                           old_classes, new_classes, excluded_classes, is_train)
         self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
 

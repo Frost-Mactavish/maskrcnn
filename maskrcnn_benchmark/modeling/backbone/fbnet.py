@@ -3,13 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import copy
 import json
 import logging
+import torch.nn as nn
 from collections import OrderedDict
 
-import torch.nn as nn
 from maskrcnn_benchmark.modeling import poolers
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.rpn import rpn
-
 from . import (
     fbnet_builder as mbuilder,
     fbnet_modeldef as modeldef,

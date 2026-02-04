@@ -2,10 +2,10 @@
 # (See https://github.com/chainer/chainercv/blob/master/chainercv/evaluations/eval_detection_voc.py)
 from __future__ import division
 
+import numpy as np
 import os
 from collections import defaultdict
 
-import numpy as np
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
@@ -56,7 +56,7 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
             fid.write(result_str)
             fid.write(",".join([str(x) for x in result["ap"]]))
 
-    return result
+    return result["map"] * 100
 
 
 def eval_detection_voc(pred_boxlists, gt_boxlists, iou_thresh=0.5, use_07_metric=False):

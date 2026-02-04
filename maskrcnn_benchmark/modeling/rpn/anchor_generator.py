@@ -2,8 +2,9 @@
 
 import numpy as np
 import torch
-from maskrcnn_benchmark.structures.bounding_box import BoxList
 from torch import nn
+
+from maskrcnn_benchmark.structures.bounding_box import BoxList
 
 
 class BufferList(nn.Module):

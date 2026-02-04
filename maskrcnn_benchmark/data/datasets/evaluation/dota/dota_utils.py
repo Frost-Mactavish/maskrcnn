@@ -1,12 +1,11 @@
 import math
+import numpy as np
 import os
 import pdb
 import re
 from functools import partial
 from glob import glob
 from multiprocessing import Pool
-
-import numpy as np
 
 from . import _polyiou
 
@@ -172,12 +171,12 @@ def voc_ap(rec, prec, use_07_metric=False):
 
 
 def voc_eval(
-    detpath,
-    annopath,
-    imagesetfile,
-    classname,
-    ovthresh=0.5,
-    use_07_metric=False
+        detpath,
+        annopath,
+        imagesetfile,
+        classname,
+        ovthresh=0.5,
+        use_07_metric=False
 ):
     with open(imagesetfile, "r") as f:
         lines = f.readlines()
@@ -289,7 +288,7 @@ def dota_eval(detpath, class_list):
 
     map = map / len(class_list) * 100
     print_msg.append(f"mAP: {map:.2f}")
-    return print_msg
+    return print_msg, map
 
 
 # the thresh for nms when merge image
