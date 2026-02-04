@@ -247,13 +247,8 @@ def test(cfg):
             summary_writer=summary_writer,
             cfg=cfg
         )
-        with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
-            fid.write(cfg.NAME)
-            fid.write(",")
-            fid.write(str(cfg.STEP))
-            fid.write(",")
-            fid.write(",".join([str(x) for x in result["ap"][1:]]))
-            fid.write("\n")
+        with open(os.path.join("log", f"result.txt"), "a") as fid:
+            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}: {result:.2f}\n")
 
 
 def main():

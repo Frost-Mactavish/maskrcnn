@@ -242,6 +242,7 @@ def main():
     cfg_source.IS_FATHER = False
     cfg_source.IS_SAMPLE = args.is_sample
     cfg_source.TEST.IMS_PER_BATCH = 8
+    cfg_source.DATASET = args.dataset
 
     cfg_source.MEM_BUFF = args.memory_buffer
     cfg_source.MEM_TYPE = args.memory_type

@@ -31,7 +31,7 @@ DATASETS:
 DATALOADER:
   SIZE_DIVISIBILITY: 0
 SOLVER:
-  BASE_LR: 0.0004 # start learning rate
+  BASE_LR: 0.002 # start learning rate
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1  # learning rate decay
   STEPS: (2000,)

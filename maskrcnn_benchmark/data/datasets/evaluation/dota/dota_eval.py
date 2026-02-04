@@ -23,9 +23,11 @@ def do_dota_evaluation(dataset, predictions, file_list, output_folder, logger, c
     for class_name, txt in zip(class_list, class_txt):
         with open(f"{path}/{class_name}.txt", "w") as f:
             f.writelines(txt)
-    print_msg = merge_and_eval(path, path, class_list)
+    print_msg, map = merge_and_eval(path, path, class_list)
     print("\n".join(print_msg))
 
     if output_folder:
         with open(os.path.join(output_folder, "result.txt"), "w") as f:
             f.write("\n".join(print_msg))
+
+    return map

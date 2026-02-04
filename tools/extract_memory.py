@@ -57,7 +57,7 @@ class Mem(object):
             self.current_mem_path = os.path.join(f"log/{self.cfg.DATASET}/{self.cfg.TASK}/{self.cfg.NAME}", self.current_mem_name)
             self.exemplar = os.listdir(self.current_mem_path)
 
-        print('--PBS REPORT-- Current prototype boxes path is {0}'.format(self.current_mem_path))
+        # print('--PBS REPORT-- Current prototype boxes path is {0}'.format(self.current_mem_path))
 
         self.num_current_classes = len(self.new_classes)
         self.num_bbox_per_cls = math.ceil(self.mem_size / len(self.all_classes))
