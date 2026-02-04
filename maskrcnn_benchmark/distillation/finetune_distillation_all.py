@@ -1,16 +1,8 @@
-import argparse
-import os
-import datetime
-import logging
-import time
 import torch
-import torch.distributed as dist
-from torch import nn
 import torch.nn.functional as F
-import numpy as np
+from torch import nn
+
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from maskrcnn_benchmark.modeling.rpn.utils import permute_and_flatten
-from maskrcnn_benchmark.layers import smooth_l1_loss
 
 
 def soften_proposales_iou_targets(soften_proposals, targets):

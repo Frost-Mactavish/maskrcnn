@@ -38,10 +38,11 @@ class GeneralizedRCNN(nn.Module):
         self.finetune_enable = cfg.FINETUNE.ENABLE
         self.cfg = cfg
         if not cfg.MODEL.RPN.EXTERNAL_PROPOSAL:
-            print('generalized_rcnn.py | Do not use external proposals, so use RPN.')
+            # print('generalized_rcnn.py | Do not use external proposals, so use RPN.')
             self.rpn = build_rpn(cfg, self.backbone.out_channels)
         else:
-            print('generalized_rcnn.py | Use external proposals.')
+            # print('generalized_rcnn.py | Use external proposals.')
+            pass
 
         # here, adding we use cfg.INCREMENTAL to use unbiased CE loss as in MiB
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)

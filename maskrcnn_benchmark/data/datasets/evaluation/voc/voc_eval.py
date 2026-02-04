@@ -41,7 +41,7 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
         pred_boxlists=pred_boxlists,
         gt_boxlists=gt_boxlists,
         iou_thresh=0.5,
-        use_07_metric=False,
+        use_07_metric=True,
     )
     result_str = "mAP: {:.4f}\n".format(result["map"])
     for i, ap in enumerate(result["ap"]):
@@ -57,7 +57,7 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
             fid.write(result_str)
             fid.write(",".join([str(x) for x in result["ap"]]))
 
-    return result
+    return result["map"] * 100
 
 
 def eval_detection_voc(pred_boxlists, gt_boxlists, iou_thresh=0.5, use_07_metric=False):

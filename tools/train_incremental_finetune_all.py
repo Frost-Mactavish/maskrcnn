@@ -53,19 +53,19 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def do_train(
-    model_source,
-    model_finetune,
-    model_target,
-    data_loader,
-    optimizer,
-    scheduler,
-    checkpointer_target,
-    device,
-    checkpoint_period,
-    arguments_target,
-    summary_writer,
-    cfg,
-    distributed=False,
+        model_source,
+        model_finetune,
+        model_target,
+        data_loader,
+        optimizer,
+        scheduler,
+        checkpointer_target,
+        device,
+        checkpoint_period,
+        arguments_target,
+        summary_writer,
+        cfg,
+        distributed=False,
 ):
     # record log information
     logger = logging.getLogger("maskrcnn_benchmark_target_model.trainer")
@@ -86,7 +86,7 @@ def do_train(
     average_faster_rcnn_loss = 0
 
     for iteration, (images, targets, _, img_id, _) in tqdm(
-        enumerate(data_loader, start_iter), total=len(data_loader)
+            enumerate(data_loader, start_iter), total=len(data_loader)
     ):
         data_time = time.time() - end
         iteration = iteration + 1
@@ -216,7 +216,7 @@ def do_train(
             class_distillation_loss = class_distillation_loss.mean()
             bbox_distillation_loss = bbox_distillation_loss.mean()
             distillation_losses += cfg.DIST.CLS * (
-                class_distillation_loss + bbox_distillation_loss
+                    class_distillation_loss + bbox_distillation_loss
             )
         ###################################
 
@@ -243,11 +243,11 @@ def do_train(
 
         if (iteration - 1) > 0:
             average_distillation_loss = (
-                average_distillation_loss * (iteration - 1) + distillation_losses
-            ) / iteration
+                                                average_distillation_loss * (iteration - 1) + distillation_losses
+                                        ) / iteration
             average_faster_rcnn_loss = (
-                average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses
-            ) / iteration
+                                               average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses
+                                       ) / iteration
         else:
             average_distillation_loss = distillation_losses
             average_faster_rcnn_loss = faster_rcnn_losses
@@ -329,24 +329,24 @@ def initalizeTargetCls_MiB(cfg, model_source, model_target):
     n_old_classes = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
     cls_score_source = model_source.roi_heads.box.predictor.cls_score
     with torch.no_grad():
-        model_target.roi_heads.box.predictor.cls_score.weight[n_old_classes + 1 :] = (
+        model_target.roi_heads.box.predictor.cls_score.weight[n_old_classes + 1:] = (
             cls_score_source.weight[0]
         )
-        model_target.roi_heads.box.predictor.cls_score.bias[n_old_classes + 1 :] = (
-            cls_score_source.bias[0]
-            - torch.log(torch.Tensor([n_old_classes]).to(cls_score_source.bias.device))
+        model_target.roi_heads.box.predictor.cls_score.bias[n_old_classes + 1:] = (
+                cls_score_source.bias[0]
+                - torch.log(torch.Tensor([n_old_classes]).to(cls_score_source.bias.device))
         )
     return model_target
 
 
 def train(
-    cfg_source,
-    cfg_finetune,
-    cfg_target,
-    logger_target,
-    distributed,
-    num_gpus,
-    local_rank,
+        cfg_source,
+        cfg_finetune,
+        cfg_target,
+        logger_target,
+        distributed,
+        num_gpus,
+        local_rank,
 ):
     model_source = build_detection_model(cfg_source)  # create the source model
     model_finetune = build_detection_model(cfg_finetune)  # create the finetune model
@@ -503,7 +503,7 @@ def test(cfg):
     data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=False)
     summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(
-        output_folders, dataset_names, data_loaders_val
+            output_folders, dataset_names, data_loaders_val
     ):
         result = inference(
             model,
@@ -521,18 +521,18 @@ def test(cfg):
         # pdb.set_trace()
         if not cfg.MODEL.MASK_ON:
             ap_old = result["ap"][
-                1 : len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
+                1: len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
             ].mean()
             ap_new = result["ap"][
                 len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-                + 1 : 1
-                + len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-                + len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
+                + 1: 1
+                     + len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+                     + len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
             ].mean()
             ap_all = result["ap"][
-                1 : 1
-                + len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-                + len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
+                1: 1
+                   + len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+                   + len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
             ].mean()
 
             with open(os.path.join("output", f"{cfg.TASK}.txt"), "a") as fid:
@@ -635,7 +635,7 @@ def main():
     cfg_source = cfg.clone()
     cfg_source.merge_from_file(target_model_config_file)
     cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
-        len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
+            len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
     )
     cfg_source.OUTPUT_DIR += args.task + "/" + full_name + "/SRC"
     cfg_source.TENSORBOARD_DIR += args.task + "/" + full_name
@@ -644,7 +644,7 @@ def main():
     cfg_finetune = cfg.clone()
     cfg_finetune.merge_from_file(target_model_config_file)
     cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
-        len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1
+            len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1
     )
     cfg_finetune.OUTPUT_DIR += args.task + "/" + full_name + "/FINETUNE"
     cfg_finetune.freeze()
@@ -661,7 +661,7 @@ def main():
         )
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
-            len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
+                len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         )
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
         print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
@@ -673,15 +673,15 @@ def main():
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = (
             cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
-                args.step * cfg_source.CLS_PER_STEP :
+                args.step * cfg_source.CLS_PER_STEP:
             ]
         )
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = (
             cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
                 (args.step - 1)
-                * cfg_target.CLS_PER_STEP : args.step
-                * cfg_source.CLS_PER_STEP
+                * cfg_target.CLS_PER_STEP: args.step
+                                           * cfg_source.CLS_PER_STEP
             ]
         )
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
@@ -694,8 +694,8 @@ def main():
         cfg_target.DIST.CLS = args.cls
     else:
         cfg_target.DIST.CLS = (
-            len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-            / cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
+                len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+                / cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         )
     cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.INIT = args.init

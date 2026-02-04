@@ -39,7 +39,7 @@ class ResNet50Conv5ROIFeatureExtractor(nn.Module):
         self.head = head
         self.out_channels = head.out_channels
 
-        print('roi_box_feature_extractor.py | create feature extractor for RESNET-50')
+        # print('roi_box_feature_extractor.py | create feature extractor for RESNET-50')
 
     def forward(self, x, proposals):
         roi_align_features = self.pooler(x, proposals)

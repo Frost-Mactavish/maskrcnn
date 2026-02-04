@@ -255,7 +255,7 @@ def build_rpn(cfg, in_channels):
     This gives the gist of it. Not super important because it doesn't change as much
     """
 
-    print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
+    # print('rpn.py | build_rpn | in_channels: {0}'.format(in_channels))
 
     if cfg.MODEL.RETINANET_ON:
         return build_retinanet(cfg, in_channels)

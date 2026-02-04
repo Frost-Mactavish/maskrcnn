@@ -1,6 +1,6 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
 
 
 def calculate_attentive_distillation_loss(f_map_s, f_map_t):

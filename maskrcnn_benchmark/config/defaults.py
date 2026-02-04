@@ -424,7 +424,7 @@ _C.SOLVER.GAMMA = 0.1  # decay rate
 _C.SOLVER.STEPS = (30000,)
 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
-_C.SOLVER.WARMUP_ITERS = 500
+_C.SOLVER.WARMUP_ITERS = 100
 _C.SOLVER.WARMUP_METHOD = "linear"
 
 _C.SOLVER.CHECKPOINT_PERIOD = 2500
@@ -518,8 +518,9 @@ _C.PSEUDO_LABELS.SUPERVISION = False
 _C.FROZEN = CN()
 _C.FROZEN.ENABLE = False
 _C.FROZEN.LAYERS = (
-"backbone.body.stem.conv1.weight", "backbone.body.layer1.0.downsample.0.weight", "backbone.body.layer1.0.conv1.weight",
-"backbone.body.layer1.0.conv2.weight", "backbone.body.layer1.0.conv3.weigh",)
+    "backbone.body.stem.conv1.weight", "backbone.body.layer1.0.downsample.0.weight",
+    "backbone.body.layer1.0.conv1.weight",
+    "backbone.body.layer1.0.conv2.weight", "backbone.body.layer1.0.conv3.weigh",)
 
 # ---------------------------------------------------------------------------- #
 # UNK

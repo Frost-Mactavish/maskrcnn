@@ -5,18 +5,30 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = ""
+    DATA_DIR = "/data/my_code/dataset"
     DATASETS = {
-        "voc_2007_train": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
-            "split": "train"
-        },
-        "voc_2007_val": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
-            "split": "val"
+        "voc_2007_trainval": {
+            "data_dir": "VOC",
+            "split": "trainval"
         },
         "voc_2007_test": {
-            "data_dir": "data/voc07/VOCdevkit/VOC2007",
+            "data_dir": "VOC",
+            "split": "test"
+        },
+        "dior_train": {
+            "data_dir": "DIOR",
+            "split": "train"
+        },
+        "dior_test": {
+            "data_dir": "DIOR",
+            "split": "test"
+        },
+        "dota_train": {
+            "data_dir": "DOTA_xml",
+            "split": "train"
+        },
+        "dota_test": {
+            "data_dir": "DOTA_xml",
             "split": "test"
         },
     }
@@ -34,7 +46,7 @@ class DatasetCatalog(object):
                 factory="COCODataset",
                 args=args,
             )
-        elif "voc_2007" in name:
+        elif "voc" in name:
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(
@@ -45,16 +57,26 @@ class DatasetCatalog(object):
                 factory="PascalVOCDataset",
                 args=args,
             )
-        elif "voc_2012" in name:
+        elif "dior" in name:
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(
                 data_dir=os.path.join(data_dir, attrs["data_dir"]),
                 split=attrs["split"],
-                ann_file=attrs["ann_file"]
             )
             return dict(
-                factory="PascalVOCDataset2012",
+                factory="DIORDataset",
+                args=args,
+            )
+        elif "dota" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                data_dir=os.path.join(data_dir, attrs["data_dir"]),
+                split=attrs["split"],
+            )
+            return dict(
+                factory="DOTADataset",
                 args=args,
             )
         elif "automatic_compression" in name:

@@ -8,6 +8,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
+from maskrcnn_benchmark.data.datasets import DOTADataset
 from maskrcnn_benchmark.data.datasets.evaluation import evaluate
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from ..utils.comm import is_main_process, get_world_size
@@ -53,8 +54,11 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     dataset = data_loader.dataset
     # num_back_box = 0
     # tot_bbox_under_conf = 0
+    file_list = []
     for idx, batch in enumerate(tqdm(data_loader)):
         images, targets, proposals, img_id, index = batch
+        if isinstance(data_loader.dataset, DOTADataset):
+            file_list.extend(dataset.get_img_info(i)["file_name"] for i in img_id)
         ious = []
         # load images and proposals to gpu
         images = images.to(device)
@@ -94,7 +98,7 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     # print(conf_matrix)
     # with open("conf_matrix_FILOD_UCE_UKDx10_15_15.txt", "w") as f:
     #     print(conf_matrix, file=f)
-    return results_dict, results_background_dict
+    return results_dict, results_background_dict, file_list
 
 
 def test_background_fall(dataset, idx, results, results_background, n_classes):
@@ -154,7 +158,7 @@ def _accumulate_predictions_from_multiple_gpus(predictions_per_gpu):
 
 def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=False, device="cuda",
               expected_results=(), expected_results_sigma_tol=4, output_folder=None, external_proposal=False,
-              alphabetical_order=True, summary_writer=None, save_predictions=False):
+              alphabetical_order=True, summary_writer=None, save_predictions=False, **kwargs):
     # ONLY SUPPORTED ON SINGLE GPU!
     print('inference.py | alphabetical_order: {0}'.format(alphabetical_order))
     # convert to a torch.device for efficiency
@@ -166,8 +170,9 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions, back_predictions = compute_on_dataset(model, data_loader, device, inference_timer, external_proposal,
-                                                       summary_writer)
+    predictions, back_predictions, file_list = compute_on_dataset(model, data_loader, device, inference_timer,
+                                                                  external_proposal,
+                                                                  summary_writer)
     # pdb.set_trace()
     # wait for all processes to complete before measuring the time
     # synchronize()
@@ -201,7 +206,9 @@ def inference(model, data_loader, dataset_name, iou_types=("bbox",), box_only=Fa
         iou_types=iou_types,
         expected_results=expected_results,
         expected_results_sigma_tol=expected_results_sigma_tol,
-        alphabetical_order=alphabetical_order
+        alphabetical_order=alphabetical_order,
+        file_list=file_list,
+        **kwargs
     )
 
     return evaluate(dataset=dataset,

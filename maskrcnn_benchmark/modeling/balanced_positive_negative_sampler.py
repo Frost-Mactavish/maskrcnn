@@ -1,10 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
-import sys
-import pdb
-from maskrcnn_benchmark.modeling.draw import draw_singe_image, Draw_singe_image
-from maskrcnn_benchmark.structures.bounding_box import BoxList
+
 from maskrcnn_benchmark.layers import nms as _box_nms
+from maskrcnn_benchmark.structures.bounding_box import BoxList
 
 
 class BalancedPositiveNegativeSampler(object):
