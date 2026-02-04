@@ -167,7 +167,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
 def train(cfg_source, cfg_target, logger_target):
     device = torch.device(cfg_source.MODEL.DEVICE)
-    
+
     model_source = build_detection_model(cfg_source)
     model_target = build_detection_model(cfg_target)
     model_target.to(device)
@@ -363,7 +363,8 @@ def main():
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             args.step * cfg_source.CLS_PER_STEP:]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
-        cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[(args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
+        cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
+            (args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
         print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
 
     cfg_target.DIST.FEAT = args.feat

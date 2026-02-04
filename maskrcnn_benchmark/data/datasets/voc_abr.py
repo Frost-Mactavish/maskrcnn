@@ -986,6 +986,7 @@ class DOTADataset(PascalVOCDataset):
         "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
         "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
     )
+
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
                  new_classes=[], excluded_classes=[], is_train=True, is_father=True, cfg=None):
         super().__init__(data_dir=data_dir, split=split, use_difficult=use_difficult, transforms=transforms,
@@ -1009,8 +1010,9 @@ class DOTADataset_ABR(PascalVOCDataset_ABR):
         "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
         "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
     )
+
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
-                new_classes=[], excluded_classes=[], is_train=True, cfg=None):
+                 new_classes=[], excluded_classes=[], is_train=True, cfg=None):
         super().__init__(data_dir=data_dir, split=split, use_difficult=use_difficult, transforms=transforms,
                          external_proposal=external_proposal, old_classes=old_classes, new_classes=new_classes,
                          excluded_classes=excluded_classes, is_train=is_train, cfg=cfg)
