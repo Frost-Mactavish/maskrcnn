@@ -13,4 +13,4 @@ alias exp_dota="exp -d DOTA"
 exp_dota -t 14-1 -gamma 5.0 -alpha 1.0 -beta 1.0 -mb 1000
 exp_dota -t 10-5 -gamma 1.0 -alpha 0.5 -beta 1.0 -mb 1000
 exp_dota -t 8-7 -gamma 1.0 -alpha 0.1 -beta 0.5 -mb 1000
-exp_dota -t 5-10 -gamma 1.0 -alpha 0.1 -beta 0.5 -mb 500
+exp_dota -t 5-10 -gamma 1.0 -alpha 0.1 -beta 0.5 -mb 600
