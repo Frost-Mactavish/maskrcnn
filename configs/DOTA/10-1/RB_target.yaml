@@ -40,7 +40,7 @@ SOLVER:
   IMS_PER_BATCH: 4 # number of images per batch
   MOMENTUM: 0.9
 TEST: # testing strategy
-  IMS_PER_BATCH: 8 # number of images per batch
+  IMS_PER_BATCH: 1 # number of images per batch
 OUTPUT_DIR: "log" # path to store the result
 TENSORBOARD_DIR: "log" # path to store tensorboard info
 CLS_PER_STEP: 1
