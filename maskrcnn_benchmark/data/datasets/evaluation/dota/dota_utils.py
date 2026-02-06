@@ -288,7 +288,7 @@ def dota_eval(detpath, class_list):
 
     map = map / len(class_list) * 100
     print_msg.append(f"mAP: {map:.2f}")
-    return print_msg, map
+    return print_msg, ap_list
 
 
 # the thresh for nms when merge image
