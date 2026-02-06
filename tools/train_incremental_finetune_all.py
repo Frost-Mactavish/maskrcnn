@@ -485,7 +485,6 @@ def main():
     parser.add_argument("--mask",default=1.0,type=float,)
     parser.add_argument("--cls",default=1.0,type=float,)
     parser.add_argument("--alpha",default=1.0,type=float,)
-
     parser.add_argument("--beta",default=1.0,type=float)
     parser.add_argument("--gamma",default=1.0,type=float,)
     parser.add_argument("--dist_type",default="l2",type=str,choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"],)
