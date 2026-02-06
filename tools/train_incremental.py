@@ -185,11 +185,10 @@ def train(cfg_source, cfg_target, logger_target):
     arguments_source.update(extra_checkpoint_data_source)
     arguments_target.update(extra_checkpoint_data_target)
 
-    print('start iteration: {0}'.format(arguments_target["iteration"]))
+    print('Start iteration: {0}'.format(arguments_target["iteration"]))
 
     data_loader = make_data_loader(cfg_target, is_train=True, start_iter=arguments_target["iteration"])
-    print('finish loading data')
-
+    print('Finish loading data')
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
 
     do_train(model_source, model_target, data_loader,
@@ -209,7 +208,9 @@ def test(cfg):
     model.to(cfg.MODEL.DEVICE)
 
     output_dir = cfg.OUTPUT_DIR
+    print("#### The model will be saved at {} in test phase.".format(output_dir))
     checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
+    print("#### The model weight used in test phase is: {}.".format(cfg.MODEL.WEIGHT))
     _ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
@@ -311,6 +312,7 @@ def main():
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
     cfg_source.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/SRC"
     cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
+    cfg_source.DATASET = args.dataset
     cfg_source.freeze()
 
     # LOAD THEN MODIFY PARS FROM CLI
@@ -350,6 +352,7 @@ def main():
     cfg_target.TASK = args.task
     cfg_target.STEP = args.step
     cfg_target.NAME = args.name
+    cfg_target.DATASET = args.dataset
     cfg_target.freeze()
 
     output_dir_target = cfg_target.OUTPUT_DIR
