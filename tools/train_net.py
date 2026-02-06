@@ -120,8 +120,7 @@ def train(cfg, local_rank, distributed):
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank,
                                                           broadcast_buffers=False)
-    arguments = {}
-    arguments["iteration"] = 0
+    arguments = {"iteration": 0}
 
     output_dir = cfg.OUTPUT_DIR
 

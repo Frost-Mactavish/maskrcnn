@@ -15,7 +15,7 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
                   new_classes=None, excluded_classes=None):
     """
     Arguments:
-        dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_trian, coco_2014_val, etc
+        dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_train, coco_2014_val, etc
         transforms (callable): transforms to apply to each (image, target) sample
         dataset_catalog (DatasetCatalog): contains the information on how to construct a dataset.
         is_train (bool): whether to setup the dataset for training or testing
@@ -32,15 +32,15 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
             args["remove_images_without_annotations"] = is_train
             args["is_train"] = is_train
         if data["factory"] in ("PascalVOCDataset", "DIORDataset", "DOTADataset"):
-            args["use_difficult"] = not is_train  # during training, do not use difficult
-            args["external_proposal"] = external_proposal  # whether use external proposals
+            args["use_difficult"] = not is_train
+            args["external_proposal"] = external_proposal  # whether to use external proposals
             args["old_classes"] = old_classes
             args["new_classes"] = new_classes
             args["excluded_classes"] = excluded_classes
             args["is_train"] = is_train
         if data["factory"] == "PascalVOCDataset2012":
-            args["use_difficult"] = not is_train  # during training, do not use difficult
-            args["external_proposal"] = external_proposal  # whether use external proposals
+            args["use_difficult"] = not is_train
+            args["external_proposal"] = external_proposal  # whether to use external proposals
             args["old_classes"] = old_classes
             args["new_classes"] = new_classes
             args["excluded_classes"] = excluded_classes
