@@ -176,10 +176,8 @@ def train(cfg_source, cfg_target, logger_target):
     optimizer = make_optimizer(cfg_target, model_target)
     scheduler = make_lr_scheduler(cfg_target, optimizer)
 
-    arguments_target = {}
-    arguments_target["iteration"] = 0
-    arguments_source = {}
-    arguments_source["iteration"] = 0
+    arguments_target = {"iteration": 0}
+    arguments_source = {"iteration": 0}
     output_dir_target = cfg_target.OUTPUT_DIR
     output_dir_source = cfg_source.OUTPUT_DIR
     summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
@@ -211,8 +209,6 @@ def train(cfg_source, cfg_target, logger_target):
 
 
 def test(cfg):
-    if get_rank() != 0:
-        return
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
 
@@ -247,8 +243,17 @@ def test(cfg):
             summary_writer=summary_writer,
             cfg=cfg
         )
+
+        len_old = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+        len_new = len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
+        assert len(result) == (len_old + len_new), \
+                "The length of result is not equal to the number of classes."
+        ap_old = result[:len_old].mean()
+        ap_new = result[len_old:].mean()
+        ap_all = result.mean()
         with open(os.path.join("log", f"result.txt"), "a") as fid:
-            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}: {result:.2f}\n")
+            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}\n")
+            fid.write(f"mAP Old: {ap_old:.2f}, mAP New: {ap_new:.2f}, mAP All: {ap_all:.2f}\n\n")
 
 
 def main():

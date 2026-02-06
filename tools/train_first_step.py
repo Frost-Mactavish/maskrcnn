@@ -61,8 +61,6 @@ def train(cfg):
 
 
 def run_test(cfg):
-    if get_rank() != 0:
-        return
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
 

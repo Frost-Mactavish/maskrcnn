@@ -145,8 +145,7 @@ def selector(cfg_source):
         device = torch.device(cfg_source.MODEL.DEVICE)
         model_source.to(device)
 
-        arguments_source = {}
-        arguments_source["iteration"] = 0
+        arguments_source = {"iteration" : 0}
 
         output_dir_source = cfg_source.OUTPUT_DIR + f"STEP{cfg_source.STEP}"
 
