@@ -162,10 +162,8 @@ def train(cfg_source, cfg_target, logger_target):
     optimizer = make_optimizer(cfg_target, model_target)
     scheduler = make_lr_scheduler(cfg_target, optimizer)
 
-    arguments_target = {}
-    arguments_target["iteration"] = 0
-    arguments_source = {}
-    arguments_source["iteration"] = 0
+    arguments_target = {"iteration": 0}
+    arguments_source = {"iteration": 0}
 
     output_dir_target = cfg_target.OUTPUT_DIR
     output_dir_source = cfg_source.OUTPUT_DIR
