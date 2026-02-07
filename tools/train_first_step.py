@@ -112,6 +112,11 @@ def main():
         type=str,
     )
     parser.add_argument(
+        "--finetune", "-ft",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
         "opts",
         help="Modify config options using the command-line",
         default=None,
@@ -122,6 +127,7 @@ def main():
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    cfg.IS_FINETUNE = args.finetune
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR

@@ -90,7 +90,7 @@ class GeneralizedRCNN(nn.Module):
                     else:
                         result, detector_losses = self.roi_heads(features, proposals, targets, pseudo_targets)
                 else:
-                    x, result, results_background, _ = self.roi_heads(features, proposals, targets)
+                    x, result, results_background = self.roi_heads(features, proposals, targets)
                     return result, features, results_background
                 proposals = result
             else:

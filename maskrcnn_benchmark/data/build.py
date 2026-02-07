@@ -12,7 +12,7 @@ from .transforms import build_transforms
 
 
 def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, external_proposal=False, old_classes=None,
-                  new_classes=None, excluded_classes=None):
+                  new_classes=None, excluded_classes=None, cfg=None):
     """
     Arguments:
         dataset_list (list[str]): Contains the names of the datasets, i.e. coco_2014_train, coco_2014_val, etc
@@ -38,6 +38,7 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
             args["new_classes"] = new_classes
             args["excluded_classes"] = excluded_classes
             args["is_train"] = is_train
+            args["is_finetune"] = cfg.IS_FINETUNE if hasattr(cfg, "IS_FINETUNE") else False
         if data["factory"] == "PascalVOCDataset2012":
             args["use_difficult"] = not is_train
             args["external_proposal"] = external_proposal  # whether to use external proposals
@@ -147,7 +148,7 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, ext
     excluded_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
 
     datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train, external_proposal, old_classes,
-                             new_classes, excluded_classes)
+                             new_classes, excluded_classes, cfg)
 
     data_loaders = []
     for i, dataset in enumerate(datasets):

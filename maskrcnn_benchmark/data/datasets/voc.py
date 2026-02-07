@@ -26,7 +26,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
-                 new_classes=[], excluded_classes=[], is_train=True):
+                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False):
         self.root = data_dir
         self.image_set = split  # train, validation, test
         self.keep_difficult = use_difficult
@@ -45,6 +45,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self.new_classes = new_classes
         self.exclude_classes = excluded_classes
         self.is_train = is_train
+        self.is_finetune = is_finetune
 
         # load data from all categories
         # self._normally_load_voc()
@@ -207,9 +208,10 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self._img_width = width
         target = BoxList(anno["boxes"], (width, height), mode="xyxy")
         # -------------------------
-        # labels = anno["labels"]
-        # labels -= 10
-        # target.add_field("labels", labels)
+        if self.is_finetune:
+            labels = anno["labels"]
+            labels -= len(self.exclude_classes)
+            target.add_field("labels", labels)
         # -------------------------
         target.add_field("labels", anno["labels"])
         target.add_field("difficult", anno["difficult"])
