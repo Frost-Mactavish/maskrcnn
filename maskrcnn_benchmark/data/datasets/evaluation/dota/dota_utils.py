@@ -285,7 +285,7 @@ def dota_eval(detpath, class_list):
         )
         print_msg.append(f"{classname:<{max_len}}: {ap * 100:.2f}")
         map += ap
-        ap_list.append(ap * 100)
+        ap_list.append(ap)
 
     map = map / len(class_list) * 100
     print_msg.append(f"mAP: {map:.2f}")
