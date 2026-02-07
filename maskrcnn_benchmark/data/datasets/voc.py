@@ -335,9 +335,9 @@ class DOTADataset(PascalVOCDataset):
     )
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
-                 new_classes=[], excluded_classes=[], is_train=True):
+                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False):
         super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal,
-                                          old_classes, new_classes, excluded_classes, is_train)
+                                          old_classes, new_classes, excluded_classes, is_train, is_finetune)
         self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
 
     def get_img_info(self, index):
