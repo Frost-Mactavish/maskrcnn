@@ -80,23 +80,23 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         if cfg.DIST.RPN:
             rpn_distillation_losses = calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target,
-                                                                      cls_loss='filtered_l2', bbox_loss='l2',
+                                                                      cls_loss="filtered_l2", bbox_loss="l2",
                                                                       bbox_threshold=0.1)
             distillation_losses += rpn_distillation_losses
-        if cfg.DIST.FEAT == 'align':
+        if cfg.DIST.FEAT == "align":
             feature_distillation_losses = calculate_roi_align_distillation(roi_align_features_source,
                                                                            roi_align_features_target)
             distillation_losses += feature_distillation_losses
-        elif cfg.DIST.FEAT == 'std':
+        elif cfg.DIST.FEAT == "std":
             feature_distillation_losses = calculate_feature_distillation_loss(feature_source, feature_target,
-                                                                              loss='normalized_filtered_l1')
+                                                                              loss="normalized_filtered_l1")
             distillation_losses += feature_distillation_losses
-        elif cfg.DIST.FEAT == 'att':
+        elif cfg.DIST.FEAT == "att":
             feature_distillation_losses = calculate_attentive_distillation_loss(feature_source[0], feature_target[0])
             distillation_losses += 0.1 * feature_distillation_losses
 
         distillation_dict = {}
-        distillation_dict['distillation_loss'] = distillation_losses.clone().detach()
+        distillation_dict["distillation_loss"] = distillation_losses.clone().detach()
         loss_dict_target.update(distillation_dict)
 
         losses = faster_rcnn_losses + distillation_losses
@@ -134,13 +134,13 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
                                                  memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0))
             loss_global_avg = meters.loss.global_avg
             loss_median = meters.loss.median
-            summary_writer.add_scalar('train_loss_global_avg', loss_global_avg, iteration)
-            summary_writer.add_scalar('train_loss_median', loss_median, iteration)
-            summary_writer.add_scalar('train_loss_raw', losses_reduced, iteration)
-            summary_writer.add_scalar('distillation_losses_raw', distillation_losses, iteration)
-            summary_writer.add_scalar('faster_rcnn_losses_raw', faster_rcnn_losses, iteration)
-            summary_writer.add_scalar('distillation_losses_avg', average_distillation_loss, iteration)
-            summary_writer.add_scalar('faster_rcnn_losses_avg', average_faster_rcnn_loss, iteration)
+            summary_writer.add_scalar("train_loss_global_avg", loss_global_avg, iteration)
+            summary_writer.add_scalar("train_loss_median", loss_median, iteration)
+            summary_writer.add_scalar("train_loss_raw", losses_reduced, iteration)
+            summary_writer.add_scalar("distillation_losses_raw", distillation_losses, iteration)
+            summary_writer.add_scalar("faster_rcnn_losses_raw", faster_rcnn_losses, iteration)
+            summary_writer.add_scalar("distillation_losses_avg", average_distillation_loss, iteration)
+            summary_writer.add_scalar("faster_rcnn_losses_avg", average_faster_rcnn_loss, iteration)
 
         if iteration % checkpoint_period == 0:
             checkpointer_target.save("model_last", **arguments_target)
@@ -183,10 +183,10 @@ def train(cfg_source, cfg_target, logger_target):
     arguments_source.update(extra_checkpoint_data_source)
     arguments_target.update(extra_checkpoint_data_target)
 
-    print('Start iteration: {0}'.format(arguments_target["iteration"]))
+    print("Start iteration: {0}".format(arguments_target["iteration"]))
 
     data_loader = make_data_loader(cfg_target, is_train=True, start_iter=arguments_target["iteration"])
-    print('Finish loading data')
+    print("Finish loading data")
     checkpoint_period = cfg_target.SOLVER.CHECKPOINT_PERIOD
 
     do_train(model_source, model_target, data_loader,
@@ -199,16 +199,7 @@ def train(cfg_source, cfg_target, logger_target):
     return model_target
 
 
-def test(cfg):
-    model = build_detection_model(cfg)
-    model.to(cfg.MODEL.DEVICE)
-
-    output_dir = cfg.OUTPUT_DIR
-    print("#### The model will be saved at {} in test phase.".format(output_dir))
-    checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
-    print("#### The model weight used in test phase is: {}.".format(cfg.MODEL.WEIGHT))
-    _ = checkpointer.load(cfg.MODEL.WEIGHT)
-
+def test(cfg, model):
     iou_types = ("bbox",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
@@ -253,95 +244,55 @@ def main():
     torch.cuda.manual_seed(random_seed)
     np.random.seed(random_seed)
     random.seed(random_seed)
-    print(random.randint(1, 1000))
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-    parser.add_argument(
-        "-n", "--name",
-        default="EXP",
-    )
-    parser.add_argument(
-        "-d", "--dataset",
-        type=str,
-        default="DIOR"
-    )
-    parser.add_argument(
-        "-t", "--task",
-        type=str,
-        default="15-5"
-    )
-    parser.add_argument(
-        "-s", "--step",
-        default=1, type=int
-    )
-    parser.add_argument(
-        "--rpn",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--feat",
-        default="no",
-        type=str, choices=['no', 'std', 'align', 'att']
-    )
-    parser.add_argument(
-        "--uce",
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "--cls",
-        default=1.,
-        type=float,
-    )
-    parser.add_argument(
-        "--dist_type",
-        default="l2",
-        type=str, choices=['uce', 'ce', 'ce_ada', 'ce_all', 'l2', 'none']
-    )
+    parser.add_argument("-n", "--name", default="EXP")
+    parser.add_argument("-d", "--dataset", type=str, default="DIOR")
+    parser.add_argument("-t", "--task", type=str, default="15-5")
+    parser.add_argument("-s", "--step", default=1, type=int)
+    parser.add_argument("--rpn", default=False, action="store_true")
+    parser.add_argument("--feat", default="no", type=str, choices=["no", "std", "align", "att"])
+    parser.add_argument("--uce", default=False, action="store_true")
+    parser.add_argument("--cls", default=1., type=float,)
+    parser.add_argument("--dist_type", default="l2", type=str,
+                         choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"])
 
     args = parser.parse_args()
-    target_model_config_file = f"configs/{args.dataset}/{args.task}/target.yaml"
-    full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
+
+    config_file = f"configs/{args.dataset}/{args.task}/target.yaml"
+    cfg.merge_from_file(config_file)
+    full_name = f"log/{args.dataset}/{args.task}/{args.name}"
 
     cfg_source = cfg.clone()
-    cfg_source.merge_from_file(target_model_config_file)
+    cfg_target = cfg.clone()
+
     if args.step >= 2:
-        base = 'log'
-        cfg_source.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step - 1}/model_final.pth"
-        cfg_source.MODEL.WEIGHT = cfg_source.MODEL.SOURCE_WEIGHT
+        model_weight = f"{full_name}/STEP{args.step - 1}/model_trimmed.pth"
+        cfg_source.MODEL.WEIGHT = cfg_target.MODEL.WEIGHT = model_weight
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
-    cfg_source.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/SRC"
-    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
-    cfg_source.DATASET = args.dataset
-    cfg_source.freeze()
-
-    # LOAD THEN MODIFY PARS FROM CLI
-    cfg_target = cfg.clone()
-    cfg_target.merge_from_file(target_model_config_file)
-    # if args.step == 2:
-    #     cfg_target.MODEL.WEIGHT = f"output/{args.name}/model_trimmed.pth"
-    if args.step >= 2:
-        base = 'log'
-        cfg_target.MODEL.WEIGHT = f"{base}/{args.dataset}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             :(args.step - 1) * cfg_target.CLS_PER_STEP]
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             args.step * cfg_source.CLS_PER_STEP:]
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             (args.step - 1) * cfg_target.CLS_PER_STEP:
             args.step * cfg_source.CLS_PER_STEP]
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
+
+    cfg_source.OUTPUT_DIR = f"{full_name}/STEP{args.step}/SRC"
+    cfg_target.OUTPUT_DIR = f"{full_name}/STEP{args.step}"
+    cfg_target.TENSORBOARD_DIR = f"{full_name}/STEP{args.step}/tb_logs"
+
+    cfg_target.NAME = args.name
+    cfg_target.DATASET = args.dataset
+    cfg_target.TASK = args.task
+    cfg_target.STEP = args.step
 
     cfg_target.DIST.RPN = args.rpn
     cfg_target.DIST.FEAT = args.feat
@@ -350,14 +301,10 @@ def main():
     else:
         cfg_target.DIST.CLS = len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) / \
                               cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
-    cfg_target.DIST.TYPE = args.dist_type
-    cfg_target.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
     cfg_target.INCREMENTAL = args.uce
-    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
-    cfg_target.TASK = args.task
-    cfg_target.STEP = args.step
-    cfg_target.NAME = args.name
-    cfg_target.DATASET = args.dataset
+    cfg_target.DIST.TYPE = args.dist_type
+
+    cfg_source.freeze()
     cfg_target.freeze()
 
     output_dir_target = cfg_target.OUTPUT_DIR
@@ -370,11 +317,16 @@ def main():
     if tensorboard_dir:
         mkdir(tensorboard_dir)
 
+    old_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES
+    new_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
+    excluded_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
     logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-    logger_target.info("config yaml file for target model: {}".format(target_model_config_file))
+    logger_target.info(f"All: {cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
+    logger_target.info(args)
+    logger_target.info("config yaml file for target model: {}".format(config_file))
 
-    train(cfg_source, cfg_target, logger_target)
-    test(cfg_target)
+    model = train(cfg_source, cfg_target, logger_target)
+    test(cfg_target, model)
 
 
 if __name__ == "__main__":

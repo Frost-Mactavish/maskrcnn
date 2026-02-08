@@ -1,6 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-# Set up custom environment before nearly anything else is imported
-# NOTE: this should be the first import (no not reorder)
 import argparse
 import os
 from torch.utils.tensorboard import SummaryWriter
@@ -10,48 +7,26 @@ from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.engine.inference import inference
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.utils.collect_env import collect_env_info
-from maskrcnn_benchmark.utils.comm import synchronize, get_rank
-from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
+from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
-    parser.add_argument(
-        "--config-file",
-        default="/home/ageraci/FILOD/Faster-ILOD/configs/IS_cfg/e2e_mask_rcnn_R_50_C4_1x_test.yaml",
-        metavar="FILE",
-        help="path to config file",
-    )
-    parser.add_argument("--local_rank", type=int, default=0)
-    parser.add_argument(
-        "opts",
-        help="Modify config options using the command-line",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
+    parser.add_argument("--config-file", "-c", default="", help="path to config file")
+    parser.add_argument("opts", help="Modify config options using the command-line",
+                        default=None, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
-
-    num_gpus = 1
-    distributed = num_gpus > 1
-
-    if args.local_rank != 0:
-        return
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    save_dir = ""
+    save_dir = cfg.OUTPUT_DIR
     logger = setup_logger("maskrcnn_benchmark", save_dir, get_rank())
-    logger.info("Using {} GPUs".format(num_gpus))
     logger.info(cfg)
-
-    logger.info("Collecting env info (might take some time)")
-    logger.info("\n" + collect_env_info())
 
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
@@ -61,10 +36,6 @@ def main():
     _ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
-        iou_types = iou_types + ("segm",)
-    if cfg.MODEL.KEYPOINT_ON:
-        iou_types = iou_types + ("keypoints",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
     if cfg.OUTPUT_DIR:
@@ -72,7 +43,7 @@ def main():
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
             mkdir(output_folder)
             output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
+    data_loaders_val = make_data_loader(cfg, is_train=False)
     summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
         inference(
@@ -88,7 +59,6 @@ def main():
             alphabetical_order=cfg.TEST.COCO_ALPHABETICAL_ORDER,
             summary_writer=summary_writer
         )
-        synchronize()
 
 
 if __name__ == "__main__":
