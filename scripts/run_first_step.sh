@@ -1,15 +1,28 @@
 #!/bin/bash
+# Do base training and finetune for Single-increment Experiment
 
-# FIRST STEP
+alias exp="python tools/train_first_step.py"
 
-# first 10
-python tools/train_first_step.py -c configs/OD_cfg/10-10/e2e_faster_rcnn_R_50_C4_4x_att1_rpn1.yaml
-sleep 5
-python tools/trim_detectron_model.py --name "10-10/LR005_BS4_BF_att1_rpn1"
+exp -c configs/DIOR/19-1/base.yaml
+exp -c configs/DIOR/19-1/ft.yaml -ft
 
+exp -c configs/DIOR/15-5/base.yaml
+exp -c configs/DIOR/15-5/ft.yaml -ft
 
-# first 15
-python tools/train_first_step.py -c configs/OD_cfg/15-5/e2e_faster_rcnn_R_50_C4_4x_att1_rpn1.yaml
-sleep 5
-python tools/trim_detectron_model.py --name "15-5/LR005_BS4_BF_att1_rpn1"
+exp -c configs/DIOR/10-10/base.yaml
+exp -c configs/DIOR/10-10/ft.yaml -ft
 
+exp -c configs/DIOR/5-15/base.yaml
+exp -c configs/DIOR/5-15/ft.yaml -ft
+
+exp -c configs/DOTA/14-1/base.yaml
+exp -c configs/DOTA/14-1/ft.yaml -ft
+
+exp -c configs/DOTA/10-5/base.yaml
+exp -c configs/DOTA/10-5/ft.yaml -ft
+
+exp -c configs/DOTA/8-7/base.yaml
+exp -c configs/DOTA/8-7/ft.yaml -ft
+
+exp -c configs/DOTA/5-10/base.yaml
+exp -c configs/DOTA/5-10/ft.yaml -ft

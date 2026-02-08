@@ -471,6 +471,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument("-n", "--name", default="EXP", type=str)
+    parser.add_argument("-d", "--dataset", default="DIOR", type=str)
     parser.add_argument("-t", "--task", type=str, default="15-5")
     parser.add_argument("-s", "--step", default=1, type=int)
     parser.add_argument("-e", "--eval_only", default=False, type=bool)
@@ -488,7 +489,7 @@ def main():
     parser.add_argument("--beta",default=1.0,type=float)
     parser.add_argument("--gamma",default=1.0,type=float,)
     parser.add_argument("--dist_type",default="l2",type=str,choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"],)
-    parser.add_argument("-l", "--iou_low", default=0.4, type=float)
+    parser.add_argument("-low", "--iou_low", default=0.4, type=float)
     parser.add_argument("-high", "--iou_high", default=0.7, type=float)
     parser.add_argument("-lw", "--low_weight", default=1.0, type=float)
     parser.add_argument("-hw", "--high_weight", default=0.3, type=float)

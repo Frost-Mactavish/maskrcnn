@@ -58,7 +58,7 @@ def compute_on_dataset(model, data_loader, device, timer=None, external_proposal
     for idx, batch in enumerate(tqdm(data_loader)):
         images, targets, proposals, img_id, index = batch
         if isinstance(data_loader.dataset, DOTADataset):
-            file_list.extend(dataset.get_img_info(i)["file_name"] for i in img_id)
+            file_list.extend(dataset.get_img_info(i)["file_name"] for i in index)
         ious = []
         # load images and proposals to gpu
         images = images.to(device)
