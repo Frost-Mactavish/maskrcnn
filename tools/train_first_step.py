@@ -2,6 +2,8 @@ import argparse
 import os
 import torch
 import warnings
+import random
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
 from maskrcnn_benchmark.config import cfg
@@ -88,6 +90,12 @@ def test(cfg, model):
 
 
 def main():
+    random_seed = 42
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument("--config-file", "-c", default="configs/DIOR/19-1/base.yaml",
                         help="path to config file", type=str)

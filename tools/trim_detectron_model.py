@@ -4,34 +4,14 @@ import os
 import torch
 
 parser = argparse.ArgumentParser(description="Trim Detection weights and save in PyTorch format.")
-parser.add_argument(
-    "--name",
-    default="15-5_LR005_BS4_FILOD",
-    help="Exp name",
-    type=str,
-)
-parser.add_argument(
-    "--instance",
-    default=False,
-    action='store_true',
-)
+parser.add_argument("--path", "-p", default="", help="Weight path", type=str)
 args = parser.parse_args()
 
-base_dir = 'mask_out' if args.instance else "output"
+args.save_path = f"{os.path.dirname(args.path)}/model_trimmed.pth"
+print('pretrained model path: {}'.format(args.path))
 
-name = args.name
-args.pretrained_path = f"{base_dir}/{name}/model_final.pth"
-args.save_path = f"{base_dir}/{name}/model_trimmed.pth"
-PRETRAINED_PATH = os.path.expanduser(args.pretrained_path)
-print('pretrained model path: {}'.format(PRETRAINED_PATH))
-
-# remove optimizer and iteration information, only remain model parameter and structure information
-pretrained_weights = torch.load(PRETRAINED_PATH)['model']
-# print('pretrained weights: {0}'.format(pretrained_weights))
-
+pretrained_weights = torch.load(args.path, map_location='cpu')['model']
 new_dict = {k: v for k, v in pretrained_weights.items()}
-
-# print('new dict: {0}'.format(new_dict))
 
 torch.save(new_dict, args.save_path)
 print('saved to {}.'.format(args.save_path))
