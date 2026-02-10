@@ -1,6 +1,6 @@
 import os
-
 import torch
+import shutil
 
 from .dota_utils import merge_and_eval
 
@@ -25,6 +25,7 @@ def do_dota_evaluation(dataset, predictions, file_list, output_folder, logger, c
             f.writelines(txt)
     print_msg, ap_list = merge_and_eval(path, path, class_list)
     print("\n".join(print_msg))
+    shutil.rmtree(path)
 
     if output_folder:
         with open(os.path.join(output_folder, "result.txt"), "w") as f:

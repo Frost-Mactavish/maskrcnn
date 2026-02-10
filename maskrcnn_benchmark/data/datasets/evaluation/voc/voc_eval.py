@@ -51,11 +51,10 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
             dataset.map_class_id_to_class_name(i), ap
         )
     print(result_str)
-    # print(",".join([str(x) for x in result["ap"]]))
     if output_folder:
         with open(os.path.join(output_folder, "result.txt"), "w") as fid:
             fid.write(result_str)
-            fid.write(",".join([str(x) for x in result["ap"]]))
+            fid.write(",".join([str(x) for x in result["ap"][1:]]))
 
     return result["ap"][1:]
 

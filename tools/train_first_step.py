@@ -64,13 +64,8 @@ def train(cfg):
 
 def test(cfg, model):
     iou_types = ("bbox",)
-    output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
-    if cfg.OUTPUT_DIR:
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
+    output_folders = [cfg.OUTPUT_DIR] * len(dataset_names) if cfg.OUTPUT_DIR else [None] * len(dataset_names)
     data_loaders_val = make_data_loader(cfg, is_train=False)
     summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
