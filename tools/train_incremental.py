@@ -202,7 +202,7 @@ def train(cfg_source, cfg_target, logger_target):
 def test(cfg, cfg_target, model):
     iou_types = ("bbox",)
     dataset_names = cfg_target.DATASETS.TEST
-    output_folders = [cfg.OUTPUT_DIR] * len(dataset_names) if cfg.OUTPUT_DIR else [None] * len(dataset_names)
+    output_folders = [cfg_target.OUTPUT_DIR] * len(dataset_names) if cfg_target.OUTPUT_DIR else [None] * len(dataset_names)
     data_loaders_val = make_data_loader(cfg_target, is_train=False, is_distributed=False)
     summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
