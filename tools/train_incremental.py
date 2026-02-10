@@ -321,7 +321,7 @@ def main():
     new_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
     excluded_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
     logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-    logger_target.info(f"All: {cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
+    logger_target.info(f"All: {cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
     logger_target.info(args)
     logger_target.info("config yaml file for target model: {}".format(config_file))
 
