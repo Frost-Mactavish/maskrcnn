@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "ckpt/DIOR_5+15_base_59.1.pth"
+  WEIGHT: "log/DIOR/5-15/ABR/STEP0/model_trimmed.pth"
   SOURCE_WEIGHT: "log/DIOR/5-15/ABR/STEP0/model_trimmed.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"

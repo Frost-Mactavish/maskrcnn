@@ -1,6 +1,8 @@
 import argparse
 import os
 import warnings
+import random
+import numpy as np
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -60,14 +62,7 @@ def train(cfg):
     return model
 
 
-def run_test(cfg):
-    model = build_detection_model(cfg)
-    model.to(cfg.MODEL.DEVICE)
-
-    output_dir = cfg.OUTPUT_DIR
-    checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
-    _ = checkpointer.load(cfg.MODEL.WEIGHT)
-
+def test(cfg, model):
     iou_types = ("bbox",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
@@ -96,26 +91,22 @@ def run_test(cfg):
 
 
 def main():
+    random_seed = 42
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-    parser.add_argument(
-        "--config-file", "-c",
-        default="configs/DIOR/19-1/base.yaml",
-        metavar="FILE",
-        help="path to config file",
-        type=str,
-    )
-    parser.add_argument(
-        "opts",
-        help="Modify config options using the command-line",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
+    parser.add_argument("--config-file", "-c", default="", help="path to config file", type=str)
+    parser.add_argument("opts", help="Modify config options using the command-line",
+                        default=None, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
 
     cfg.merge_from_file(args.config_file)
-    cfg.IS_FATHER = True  # loading the data by general way
     cfg.merge_from_list(args.opts)
+    cfg.IS_FATHER = True  # loading the data by general way
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR
@@ -126,8 +117,8 @@ def main():
     logger.info(args)
     logger.info("Loaded configuration file {}".format(args.config_file))
 
-    train(cfg)
-    run_test(cfg)
+    model = train(cfg)
+    test(cfg, model)
 
 
 if __name__ == "__main__":

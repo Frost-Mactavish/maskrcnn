@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "ckpt/DOTA_5+10_base_61.7.pth"
+  WEIGHT: "log/DOTA/5-10/ABR/STEP0/model_trimmed.pth"
   SOURCE_WEIGHT: "log/DOTA/5-10/ABR/STEP0/model_trimmed.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"
