@@ -1,7 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   WEIGHT: "ckpt/DIOR_15+5_base_66.1.pth"
-  SOURCE_WEIGHT: "ckpt/DIOR_15+5_base_66.1.pth"
   BACKBONE:
     CONV_BODY: "R-50-C4"
   RESNETS:
