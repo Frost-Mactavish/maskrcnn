@@ -199,43 +199,36 @@ def train(cfg_source, cfg_target, logger_target):
     return model_target
 
 
-def test(cfg, model):
+def test(cfg, cfg_target, model):
     iou_types = ("bbox",)
-    output_folders = [None] * len(cfg.DATASETS.TEST)
-    dataset_names = cfg.DATASETS.TEST
-    if cfg.OUTPUT_DIR:
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=False)
-    summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
+    dataset_names = cfg_target.DATASETS.TEST
+    output_folders = [cfg.OUTPUT_DIR] * len(dataset_names) if cfg.OUTPUT_DIR else [None] * len(dataset_names)
+    data_loaders_val = make_data_loader(cfg_target, is_train=False, is_distributed=False)
+    summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
         result = inference(
             model,
             data_loader_val,
             dataset_name=dataset_name,
             iou_types=iou_types,
-            box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
-            device=cfg.MODEL.DEVICE,
-            expected_results=cfg.TEST.EXPECTED_RESULTS,
-            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+            box_only=False if cfg_target.MODEL.RETINANET_ON else cfg_target.MODEL.RPN_ONLY,
+            device=cfg_target.MODEL.DEVICE,
+            expected_results=cfg_target.TEST.EXPECTED_RESULTS,
+            expected_results_sigma_tol=cfg_target.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
-            alphabetical_order=cfg.TEST.COCO_ALPHABETICAL_ORDER,
+            alphabetical_order=cfg_target.TEST.COCO_ALPHABETICAL_ORDER,
             summary_writer=summary_writer,
-            cfg=cfg
+            cfg=cfg_target
         )
 
-        len_old = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-        len_new = len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
-        assert len(result) == (len_old + len_new), \
-                "The length of result is not equal to the number of classes."
-        ap_old = result[:len_old].mean() * 100
-        ap_new = result[len_old:].mean() * 100
-        ap_all = result.mean() * 100
-        with open(os.path.join("log", f"result.txt"), "a") as fid:
-            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}\n")
-            fid.write(f"mAP Old: {ap_old:.2f}, mAP New: {ap_new:.2f}, mAP All: {ap_all:.2f}\n\n")
+        if len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES) == 0:
+            len_old = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+            ap_old = result[:len_old].mean() * 100
+            ap_new = result[len_old:].mean() * 100
+            ap_all = result.mean() * 100
+            with open(os.path.join("log", f"result.txt"), "a") as fid:
+                fid.write(f"{cfg_target.DATASET} {cfg_target.NAME} Task {cfg_target.TASK} Step {cfg_target.STEP}\n")
+                fid.write(f"mAP Old: {ap_old:.1f}, mAP New: {ap_new:.1f}, mAP All: {ap_all:.1f}\n\n")
 
 
 def main():
@@ -320,13 +313,14 @@ def main():
     old_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES
     new_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
     excluded_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
+    num_classes = cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1
     logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-    logger_target.info(f"All: {cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
+    logger_target.info(f"All: {num_classes}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
     logger_target.info(args)
     logger_target.info("config yaml file for target model: {}".format(config_file))
 
     model = train(cfg_source, cfg_target, logger_target)
-    test(cfg_target, model)
+    test(cfg, cfg_target, model)
 
 
 if __name__ == "__main__":

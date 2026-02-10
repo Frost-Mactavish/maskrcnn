@@ -1,5 +1,5 @@
 import argparse
-import os
+import warnings
 from torch.utils.tensorboard import SummaryWriter
 
 from maskrcnn_benchmark.config import cfg
@@ -9,7 +9,8 @@ from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.comm import get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def main():
@@ -26,7 +27,7 @@ def main():
 
     save_dir = cfg.OUTPUT_DIR
     logger = setup_logger("maskrcnn_benchmark", save_dir, get_rank())
-    logger.info(cfg)
+    logger.info(args)
 
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
@@ -36,13 +37,8 @@ def main():
     _ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
-    output_folders = [None] * len(cfg.DATASETS.TEST)
     dataset_names = cfg.DATASETS.TEST
-    if cfg.OUTPUT_DIR:
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
+    output_folders = [cfg.OUTPUT_DIR] * len(dataset_names) if cfg.OUTPUT_DIR else [None] * len(dataset_names)
     data_loaders_val = make_data_loader(cfg, is_train=False)
     summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
