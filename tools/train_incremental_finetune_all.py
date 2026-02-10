@@ -55,9 +55,9 @@ def do_train(
     meters = MetricLogger(delimiter="  ")
     max_iter = len(data_loader)
     start_iter = arguments_target["iteration"]
-    print(start_iter)
     model_target.train()
     model_finetune.eval()
+    model_source.eval()
     start_training_time = time.time()
     end = time.time()
     average_distillation_loss = 0
@@ -378,6 +378,8 @@ def train(
     if cfg_target.DIST.INIT:
         model_target = initalizeTargetCls_MiB(cfg_target, model_source, model_target)
 
+    print("Start iteration: {0}".format(arguments_target["iteration"]))
+
     data_loader = make_data_loader(
         cfg_target,
         is_train=True,
@@ -412,53 +414,35 @@ def train(
     return model_target
 
 
-def test(cfg):
-    if get_rank() != 0:
-        return
-    model = build_detection_model(cfg)
-    model.to(cfg.MODEL.DEVICE)
-
-    output_dir = cfg.OUTPUT_DIR
-    print("#### The model will be saved at {} in test phase.".format(output_dir))
-    checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
-    print("#### The model weight used in test phase is: {}.".format(cfg.MODEL.WEIGHT))
-    _ = checkpointer.load(cfg.MODEL.WEIGHT)
-
+def test(cfg, cfg_target, model):
     iou_types = ("bbox",)
-    output_folders = [None] * len(cfg.DATASETS.TEST)
-    dataset_names = cfg.DATASETS.TEST
-    if cfg.OUTPUT_DIR:
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=False)
-    summary_writer = SummaryWriter(log_dir=cfg.TENSORBOARD_DIR)
+    dataset_names = cfg_target.DATASETS.TEST
+    output_folders = [cfg_target.OUTPUT_DIR] * len(dataset_names) if cfg_target.OUTPUT_DIR else [None] * len(dataset_names)
+    data_loaders_val = make_data_loader(cfg_target, is_train=False, is_distributed=False)
+    summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
         result = inference(
             model,
             data_loader_val,
             dataset_name=dataset_name,
             iou_types=iou_types,
-            box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
-            device=cfg.MODEL.DEVICE,
-            expected_results=cfg.TEST.EXPECTED_RESULTS,
-            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+            box_only=False if cfg_target.MODEL.RETINANET_ON else cfg_target.MODEL.RPN_ONLY,
+            device=cfg_target.MODEL.DEVICE,
+            expected_results=cfg_target.TEST.EXPECTED_RESULTS,
+            expected_results_sigma_tol=cfg_target.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
-            alphabetical_order=cfg.TEST.COCO_ALPHABETICAL_ORDER,
+            alphabetical_order=cfg_target.TEST.COCO_ALPHABETICAL_ORDER,
             summary_writer=summary_writer,
         )
-        # pdb.set_trace()
-        len_old = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
-        len_new = len(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
-        assert len(result) == (len_old + len_new), \
-                "The length of result is not equal to the number of classes."
-        ap_old = result[:len_old].mean() * 100
-        ap_new = result[len_old:].mean() * 100
-        ap_all = result.mean() * 100
-        with open(os.path.join("log", f"result.txt"), "a") as fid:
-            fid.write(f"{cfg.DATASET} {cfg.NAME} Task {cfg.TASK} Step {cfg.STEP}\n")
-            fid.write(f"mAP Old: {ap_old:.2f}, mAP New: {ap_new:.2f}, mAP All: {ap_all:.2f}\n\n")
+        
+        if len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES) == 0:
+            len_old = len(cfg.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
+            ap_old = result[:len_old].mean() * 100
+            ap_new = result[len_old:].mean() * 100
+            ap_all = result.mean() * 100
+            with open(os.path.join("log", f"result.txt"), "a") as fid:
+                fid.write(f"{cfg_target.DATASET} {cfg_target.NAME} Task {cfg_target.TASK} Step {cfg_target.STEP}\n")
+                fid.write(f"mAP Old: {ap_old:.1f}, mAP New: {ap_new:.1f}, mAP All: {ap_all:.1f}\n\n")
 
 
 def main():
@@ -474,76 +458,64 @@ def main():
     parser.add_argument("-d", "--dataset", default="DIOR", type=str)
     parser.add_argument("-t", "--task", type=str, default="15-5")
     parser.add_argument("-s", "--step", default=1, type=int)
-    parser.add_argument("-e", "--eval_only", default=False, type=bool)
 
     parser.add_argument("--ist", default=False, action="store_true")
     parser.add_argument("--rpn", default=False, action="store_true")
-    parser.add_argument("--feat", default="no", type=str, choices=["no", "std", "align", "att", "ard"])
+    parser.add_argument("--feat", default="no", type=str,
+                        choices=["no", "std", "align", "att", "ard"])
     parser.add_argument("--uce", default=False, action="store_true")
     parser.add_argument("--init", default=False, action="store_true")
     parser.add_argument("--bg", default=False, action="store_true")
     parser.add_argument("--inv", default=False, action="store_true")
-    parser.add_argument("--mask",default=1.0,type=float,)
-    parser.add_argument("--cls",default=1.0,type=float,)
-    parser.add_argument("--alpha",default=1.0,type=float,)
-    parser.add_argument("--beta",default=1.0,type=float)
-    parser.add_argument("--gamma",default=1.0,type=float,)
-    parser.add_argument("--dist_type",default="l2",type=str,choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"],)
+    parser.add_argument("--mask", default=1.0, type=float,)
+    parser.add_argument("--cls", default=1.0, type=float,)
+    parser.add_argument("--alpha", default=1.0, type=float,)
+    parser.add_argument("--beta", default=1.0, type=float)
+    parser.add_argument("--gamma", default=1.0, type=float,)
+    parser.add_argument("--dist_type", default="l2", type=str,
+                        choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"],)
     parser.add_argument("-low", "--iou_low", default=0.4, type=float)
     parser.add_argument("-high", "--iou_high", default=0.7, type=float)
     parser.add_argument("-lw", "--low_weight", default=1.0, type=float)
     parser.add_argument("-hw", "--high_weight", default=0.3, type=float)
-    parser.add_argument("-lr", "--LR", default=-1, type=float)
     args = parser.parse_args()
 
-    target_model_config_file = (f"configs/{args.dataset}/{args.task}/target.yaml")
-    full_name = f"{args.name}/STEP{args.step}"  # if args.step > 1 else args.name
+    config_file = (f"configs/{args.dataset}/{args.task}/target.yaml")
+    cfg.merge_from_file(config_file)
+    full_name = f"log/{args.dataset}/{args.task}/{args.name}"
 
     cfg_source = cfg.clone()
-    cfg_source.merge_from_file(target_model_config_file)
-    cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
-            len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
-    )
-    cfg_source.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/SRC"
-    cfg_source.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
-    cfg_source.freeze()
-
     cfg_finetune = cfg.clone()
-    cfg_finetune.merge_from_file(target_model_config_file)
-    cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
-            len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1
-    )
-    cfg_finetune.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name + "/FINETUNE"
-    cfg_finetune.freeze()
+    cfg_target = cfg.clone()
+
+    # TODO: Is this even correct?
+    cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1)
+    cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1)
 
     # LOAD THEN MODIFY PARS FROM CLI
-    cfg_target = cfg.clone()
-    cfg_target.merge_from_file(target_model_config_file)
-    # if args.step == 2:
-    #     cfg_target.MODEL.WEIGHT = f"output/{args.name}/model_trimmed.pth"
     if args.step >= 2:
-        base = "log" if not args.ist else "mask_out"
-        cfg_target.MODEL.WEIGHT = (
-            f"{base}/{args.task}/{args.name}/STEP{args.step - 1}/model_trimmed.pth"
-        )
+        model_weight = f"{full_name}/STEP{args.step - 1}/model_trimmed.pth"
+        cfg_source.MODEL.WEIGHT = cfg_target.MODEL.WEIGHT = model_weight
+    if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
+        cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
+        cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
+    else:
+        cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
                 len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         )
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES += args.step * cfg_target.CLS_PER_STEP
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES += (
             cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
                 : (args.step - 1) * cfg_target.CLS_PER_STEP
             ]
         )
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES = (
             cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
                 args.step * cfg_source.CLS_PER_STEP:
             ]
         )
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES)
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = (
             cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
                 (args.step - 1)
@@ -551,7 +523,16 @@ def main():
                                            * cfg_source.CLS_PER_STEP
             ]
         )
-        print(cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES)
+
+    cfg_source.OUTPUT_DIR = f"{full_name}/STEP{args.step}/SRC"
+    cfg_finetune.OUTPUT_DIR = f"{full_name}/STEP{args.step}/FT"
+    cfg_target.OUTPUT_DIR = f"{full_name}/STEP{args.step}"
+    cfg_target.TENSORBOARD_DIR = f"{full_name}/STEP{args.step}/tb_logs"
+
+    cfg_target.NAME = args.name
+    cfg_target.DATASET = args.dataset
+    cfg_target.TASK = args.task
+    cfg_target.STEP = args.step
 
     cfg_target.DIST.MASK = args.mask if args.ist else 0.0
     cfg_target.DIST.RPN = args.rpn
@@ -570,23 +551,15 @@ def main():
     cfg_target.DIST.BETA = args.beta
     cfg_target.DIST.GAMMA = args.gamma
     cfg_target.DIST.BG = args.bg
-
-    cfg_target.OUTPUT_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
     cfg_target.INCREMENTAL = args.uce
-    cfg_target.TENSORBOARD_DIR += "/" + args.dataset + "/" + args.task + "/" + full_name
-    cfg_target.TASK = args.task
-    cfg_target.STEP = args.step
-    cfg_target.NAME = args.name
     cfg_target.IOU_LOW = args.iou_low
     cfg_target.IOU_HIGH = args.iou_high
     cfg_target.LOW_WEIGHT = args.low_weight
     cfg_target.HIGH_WEIGHT = args.high_weight
-    if args.LR > 0:
-        cfg_target.SOLVER.BASE_LR = args.LR
-    # if args.weight is not "NONE":
-    #     cfg_target.MODEL.WEIGHT = args.weight
 
-    cfg_target.freeze()
+    cfg_source.freeze()
+    cfg_finetune.freeze()
+    cfg_target.freeze()    
 
     output_dir_target = cfg_target.OUTPUT_DIR
     if output_dir_target:
@@ -594,21 +567,24 @@ def main():
     output_dir_source = cfg_source.OUTPUT_DIR
     if output_dir_source:
         mkdir(output_dir_source)
+    output_dir_finetune = cfg_finetune.OUTPUT_DIR
+    if output_dir_finetune:
+        mkdir(output_dir_finetune)
     tensorboard_dir = cfg_target.TENSORBOARD_DIR
     if tensorboard_dir:
         mkdir(tensorboard_dir)
 
+    old_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES
+    new_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
+    excluded_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
+    num_classes = cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1
     logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-    logger_target.info("config yaml file for target model: {}".format(target_model_config_file))
+    logger_target.info(f"All: {num_classes}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
+    logger_target.info(args)
+    logger_target.info("config yaml file for target model: {}".format(config_file))
 
-    if not args.eval_only:
-        train(
-            cfg_source,
-            cfg_finetune,
-            cfg_target,
-            logger_target,
-        )
-    test(cfg_target)
+    model = train(cfg_source, cfg_finetune, cfg_target, logger_target)
+    test(cfg_target, model)
 
 
 if __name__ == "__main__":
