@@ -1,0 +1,46 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "ckpt/DOTA_5+10_base_61.7.pth"
+  SOURCE_WEIGHT: "ckpt/DOTA_5+10_base_61.7.pth"
+  BACKBONE:
+    CONV_BODY: "R-50-C4"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 1024
+  RPN:
+    USE_FPN: False
+    ANCHOR_STRIDE: (16,)
+    PRE_NMS_TOP_N_TRAIN: 12000
+    PRE_NMS_TOP_N_TEST: 6000
+    POST_NMS_TOP_N_TRAIN: 2000
+    POST_NMS_TOP_N_TEST: 1000
+  ROI_HEADS:
+    USE_FPN: False
+  ROI_BOX_HEAD:
+    POOLER_RESOLUTION: 7
+    POOLER_SCALES: (0.0625,)
+    POOLER_SAMPLING_RATIO: 0
+    FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
+    PREDICTOR: "FastRCNNPredictor"
+    NUM_CLASSES: 16 # total classes : 15 + 1
+    NAME_OLD_CLASSES: [ "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle" ]
+    NAME_NEW_CLASSES: [ "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter" ]
+    NAME_EXCLUDED_CLASSES: [ ]
+DATASETS:
+  TRAIN: ("dota_train",)
+  TEST: ("dota_test",)
+DATALOADER:
+  SIZE_DIVISIBILITY: 0
+SOLVER:
+  BASE_LR: 0.0004 # start learning rate
+  WEIGHT_DECAY: 0.0001
+  GAMMA: 0.1  # learning rate decay
+  STEPS: (4000,)
+  MAX_ITER: 5000 # number of iteration
+  CHECKPOINT_PERIOD: 4000 # number of iteration to generate check point
+  IMS_PER_BATCH: 4 # number of images per batch
+  MOMENTUM: 0.9
+TEST: # testing strategy
+  IMS_PER_BATCH: 1 # number of images per batch
+OUTPUT_DIR: "log" # path to store the result
+TENSORBOARD_DIR: "log" # path to store tensorboard info
+CLS_PER_STEP: 5
