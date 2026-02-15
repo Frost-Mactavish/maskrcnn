@@ -20,6 +20,34 @@ def calculate_attentive_distillation_loss(f_map_s, f_map_t):
     return combined_loss
 
 
+def calculate_attentive_distillation_losses(features_source, features_target, weights=None):
+    """
+    Calculate attentive distillation loss for FPN multi-scale features (P2-P5 only).
+    
+    Args:
+        features_source (list[Tensor]): List of feature maps from source model (teacher).
+                                        Each tensor has shape Bs*C*H*W.
+        features_target (list[Tensor]): List of feature maps from target model (student).
+                                        Each tensor has shape Bs*C*H*W.
+        weights (list[float], optional): Weights for each FPN level. If None, use equal weights.
+    
+    Returns:
+        Tensor: Combined attentive distillation loss across P2-P5 levels.
+    """
+    # Only distill P2-P5 (first 4 levels), skip P6
+    num_levels = min(len(features_source), len(features_target), 4)
+    
+    if weights is None:
+        weights = [1.0] * num_levels
+    
+    total_loss = 0.0
+    for i in range(num_levels):
+        level_loss = calculate_attentive_distillation_loss(features_target[i], features_source[i])
+        total_loss += weights[i] * level_loss
+    
+    return total_loss / num_levels
+
+
 def get_attention(f_map, temp):
     """ preds: Bs*C*W*H """
     N, C, H, W = f_map.shape
@@ -60,4 +88,3 @@ def get_ad_loss(C_s, C_t, S_s, S_t):
 
     return ad_loss
 
-    return context

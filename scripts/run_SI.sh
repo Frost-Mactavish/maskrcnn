@@ -1,12 +1,7 @@
 #!/bin/bash
 
 alias exp="python tools/train_incremental.py"
-shopt -s expand_aliases
 
-# FIRST STEP
-# python tools/train_first_step.py -c configs/OD_cfg/e2e_faster_rcnn_R_50_C4_4x.yaml
-
-# INCREMENTAL STEPS
 task=19-1
 exp -t ${task} -n ILOD
 exp -t ${task} -n FILOD --rpn --feat std --cls 1.
@@ -18,7 +13,7 @@ exp -t ${task} -n FILOD --feat std --rpn --cls 1.
 exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.5
 
 task=10-10
-exp -t ${task} -n ILOD
+exp -t ${task} -n ILOD SOLVER.BASE_LR 0.001
 exp -t ${task} -n FILOD --feat std --rpn --cls 1.
 exp -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.1
 

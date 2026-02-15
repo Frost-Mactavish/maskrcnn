@@ -14,7 +14,9 @@ from tqdm import tqdm
 
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
-from maskrcnn_benchmark.distillation.attentive_distillation import calculate_attentive_distillation_loss
+from maskrcnn_benchmark.distillation.attentive_distillation import (
+    calculate_attentive_distillation_losses
+)
 from maskrcnn_benchmark.distillation.distillation import (
     calculate_feature_distillation_loss,
     calculate_roi_align_distillation,
@@ -63,7 +65,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         with torch.no_grad():
             soften_result, soften_mask_logits, soften_proposal, feature_source, _, _, rpn_output_source, roi_align_features_source = \
                 model_source.generate_soften_proposal(images)
-
+        
         loss_dict_target, feature_target, _, _, rpn_output_target, target_proposals, _, target_soften_results \
             = model_target(images, targets, rpn_output_source=rpn_output_source)
         faster_rcnn_losses = sum(loss for loss in loss_dict_target.values())
@@ -92,7 +94,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
                                                                               loss="normalized_filtered_l1")
             distillation_losses += feature_distillation_losses
         elif cfg.DIST.FEAT == "att":
-            feature_distillation_losses = calculate_attentive_distillation_loss(feature_source[0], feature_target[0])
+            feature_distillation_losses = calculate_attentive_distillation_losses(feature_source, feature_target)
             distillation_losses += 0.1 * feature_distillation_losses
 
         distillation_dict = {}
@@ -106,7 +108,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         if not math.isfinite(loss := losses_reduced.item()):
-            print(f"Loss is {loss}, stop training")
+            logger.info(f"Loss is {loss}, stop training")
             sys.exit(1)
 
         if (iteration - 1) > 0:
@@ -239,21 +241,24 @@ def main():
     random.seed(random_seed)
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-    parser.add_argument("-n", "--name", default="EXP")
-    parser.add_argument("-d", "--dataset", type=str, default="DIOR")
-    parser.add_argument("-t", "--task", type=str, default="15-5")
+    parser.add_argument("-n", "--name", default="MMA", type=str)
+    parser.add_argument("-d", "--dataset", default="DIOR", type=str)
+    parser.add_argument("-t", "--task", default="19-1", type=str)
     parser.add_argument("-s", "--step", default=1, type=int)
     parser.add_argument("--rpn", default=False, action="store_true")
-    parser.add_argument("--feat", default="no", type=str, choices=["no", "std", "align", "att"])
+    parser.add_argument("--feat", default="no", choices=["no", "std", "align", "att"], type=str)
     parser.add_argument("--uce", default=False, action="store_true")
-    parser.add_argument("--cls", default=1., type=float,)
+    parser.add_argument("--cls", default=1., type=float)
     parser.add_argument("--dist_type", default="l2", type=str,
                          choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"])
-
+    parser.add_argument("opts", help="Modify config options using the command-line",
+                        default=None, nargs=argparse.REMAINDER)
+    
     args = parser.parse_args()
 
     config_file = f"configs/{args.dataset}/{args.task}/target.yaml"
     cfg.merge_from_file(config_file)
+    cfg.merge_from_list(args.opts)
     full_name = f"log/{args.dataset}/{args.task}/{args.name}"
 
     cfg_source = cfg.clone()

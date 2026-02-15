@@ -125,55 +125,52 @@ def calculate_roi_align_distillation(source_roi_align_features, target_roi_align
 
 
 def calculate_feature_distillation_loss(source_features, target_features, loss=None):  # pixel-wise
-    num_source_features = len(source_features)
-    num_target_features = len(target_features)
+    # Only distill P2-P5 (first 4 levels), skip P6
+    num_levels = min(len(source_features), len(target_features), 4)
     final_feature_distillation_loss = []
 
-    if num_source_features == num_target_features:
-        for i in range(num_source_features):
-            source_feature = source_features[i]
-            target_feature = target_features[i]
-            if loss == 'l2':
-                l2_loss = nn.MSELoss(size_average=False, reduce=False)
-                feature_distillation_loss = l2_loss(source_feature, target_feature)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-            elif loss == 'l1':
-                feature_distillation_loss = torch.abs(source_feature - target_feature)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-            elif loss == 'smooth_l1':
-                feature_distillation_loss = smooth_l1_loss(source_feature, target_feature, size_average=True, beta=1)
-                final_feature_distillation_loss.append(feature_distillation_loss)
-            elif loss == 'normalized_filtered_l1':
-                source_feature_avg = torch.mean(source_feature)
-                target_feature_avg = torch.mean(target_feature)
-                normalized_source_feature = source_feature - source_feature_avg  # normalize features
-                normalized_target_feature = target_feature - target_feature_avg
-                feature_difference = normalized_source_feature - normalized_target_feature
-                feature_size = feature_difference.size()
-                filter = torch.zeros(feature_size).to('cuda')
-                feature_distillation_loss = torch.max(feature_difference, filter)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-                del filter
-                torch.cuda.empty_cache()  # Release unoccupied memory
-            elif loss == 'normalized_filtered_l2':
-                source_feature_avg = torch.mean(source_feature)
-                target_feature_avg = torch.mean(target_feature)
-                normalized_source_feature = source_feature - source_feature_avg  # normalize features
-                normalized_target_feature = target_feature - target_feature_avg  # normalize features
-                feature_difference = normalized_source_feature - normalized_target_feature
-                feature_size = feature_difference.size()
-                filter = torch.zeros(feature_size).to('cuda')
-                feature_distillation = torch.max(feature_difference, filter)
-                feature_distillation_loss = torch.mul(feature_distillation, feature_distillation)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-                del filter
-                torch.cuda.empty_cache()  # Release unoccupied memory
-            else:
-                raise ValueError("Wrong loss function for feature distillation")
-    else:
-        raise ValueError("Number of source features must equal to number of target features")
+    for i in range(num_levels):
+        source_feature = source_features[i]
+        target_feature = target_features[i]
+        if loss == 'l2':
+            l2_loss = nn.MSELoss(size_average=False, reduce=False)
+            feature_distillation_loss = l2_loss(source_feature, target_feature)
+            final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
+        elif loss == 'l1':
+            feature_distillation_loss = torch.abs(source_feature - target_feature)
+            final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
+        elif loss == 'smooth_l1':
+            feature_distillation_loss = smooth_l1_loss(source_feature, target_feature, size_average=True, beta=1)
+            final_feature_distillation_loss.append(feature_distillation_loss)
+        elif loss == 'normalized_filtered_l1':
+            source_feature_avg = torch.mean(source_feature)
+            target_feature_avg = torch.mean(target_feature)
+            normalized_source_feature = source_feature - source_feature_avg  # normalize features
+            normalized_target_feature = target_feature - target_feature_avg
+            feature_difference = normalized_source_feature - normalized_target_feature
+            feature_size = feature_difference.size()
+            filter = torch.zeros(feature_size).to('cuda')
+            feature_distillation_loss = torch.max(feature_difference, filter)
+            final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
+            del filter
+            torch.cuda.empty_cache()  # Release unoccupied memory
+        elif loss == 'normalized_filtered_l2':
+            source_feature_avg = torch.mean(source_feature)
+            target_feature_avg = torch.mean(target_feature)
+            normalized_source_feature = source_feature - source_feature_avg  # normalize features
+            normalized_target_feature = target_feature - target_feature_avg  # normalize features
+            feature_difference = normalized_source_feature - normalized_target_feature
+            feature_size = feature_difference.size()
+            filter = torch.zeros(feature_size).to('cuda')
+            feature_distillation = torch.max(feature_difference, filter)
+            feature_distillation_loss = torch.mul(feature_distillation, feature_distillation)
+            final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
+            del filter
+            torch.cuda.empty_cache()  # Release unoccupied memory
+        else:
+            raise ValueError("Wrong loss function for feature distillation")
 
-    final_feature_distillation_loss = sum(final_feature_distillation_loss)
+    final_feature_distillation_loss = sum(final_feature_distillation_loss) / num_levels
 
     return final_feature_distillation_loss
 
