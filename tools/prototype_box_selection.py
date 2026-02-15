@@ -56,8 +56,10 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
             (target_scores, _), _, _, _, roi_align_features = \
                 model_source.generate_feature_logits_by_targets(images, targets)
 
-        target_scores.tolist()  # [9, 16]
-        roi_align_features = torch.mean(roi_align_features.cpu(), dim=1).tolist()  # [9, 1024, 7, 7]
+        target_scores.tolist()  # [num_boxes, num_classes]
+        # roi_align_features shape: [num_boxes, C, 7, 7] where C=1024 (C4) or C=256 (FPN)
+        # After mean on channel dim: [num_boxes, 7, 7]
+        roi_align_features = torch.mean(roi_align_features.cpu(), dim=1).tolist()
 
         # print(target_scores.shape)
         batch_time = time.time() - end
@@ -94,8 +96,8 @@ def extract_bboxes_and_features(model_source, data_loader, device, cfg):
                     # print(len(roi_align_features))
                     # print(bbox_index-1)
                     all_bboxes_info[target.extra_fields["labels"][ind].item() - len(old_classes) - 1].append(
-                        {'feature': roi_align_features[bbox_index - 1],  # [1024, 7, 7]
-                         'logits': target_scores[img_n + ind].cpu(),  # [16]
+                        {'feature': roi_align_features[bbox_index - 1],  # [7, 7] after channel mean
+                         'logits': target_scores[img_n + ind].cpu(),  # [num_classes]
                          'image_path': idx[img_n],  # list
                          'box_class': target.extra_fields["labels"][ind].cpu().item(),  # []
                          'box': bboxes,  # []

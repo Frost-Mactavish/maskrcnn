@@ -1,7 +1,6 @@
 #!/bin/bash
 
 alias exp="python tools/train_incremental.py -n ABR -s 1 --feat ard --dist_type id -mt mean"
-shopt -s expand_aliases
 
 alias exp_dior="exp -d DIOR"
 exp_dior -t 19-1 -gamma 5.0 -alpha 1.0 -beta 1.0 -mb 2000

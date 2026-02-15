@@ -124,32 +124,29 @@ def activation_at(f_map, temp=2):
 
 
 def calculate_feature_distillation_loss(source_features, target_features, loss=None):  # pixel-wise
-    num_source_features = len(source_features)
-    num_target_features = len(target_features)
+    # Only distill P2-P5 (first 4 levels), skip P6
+    num_levels = min(len(source_features), len(target_features), 4)
     final_feature_distillation_loss = []
 
-    if num_source_features == num_target_features:
-        for i in range(num_source_features):
-            source_feature = source_features[i]
-            target_feature = target_features[i]
-            if loss == 'normalized_filtered_l1':
-                source_feature_avg = torch.mean(source_feature)
-                target_feature_avg = torch.mean(target_feature)
-                normalized_source_feature = source_feature - source_feature_avg  # normalize features
-                normalized_target_feature = target_feature - target_feature_avg
-                feature_difference = normalized_source_feature - normalized_target_feature
-                feature_size = feature_difference.size()
-                filter = torch.zeros(feature_size).to('cuda')
-                feature_distillation_loss = torch.max(feature_difference, filter)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-                del filter
-                torch.cuda.empty_cache()  # Release unoccupied memory
-            else:
-                raise ValueError("Wrong loss function for feature distillation")
-    else:
-        raise ValueError("Number of source features must equal to number of target features")
+    for i in range(num_levels):
+        source_feature = source_features[i]
+        target_feature = target_features[i]
+        if loss == 'normalized_filtered_l1':
+            source_feature_avg = torch.mean(source_feature)
+            target_feature_avg = torch.mean(target_feature)
+            normalized_source_feature = source_feature - source_feature_avg  # normalize features
+            normalized_target_feature = target_feature - target_feature_avg
+            feature_difference = normalized_source_feature - normalized_target_feature
+            feature_size = feature_difference.size()
+            filter = torch.zeros(feature_size).to('cuda')
+            feature_distillation_loss = torch.max(feature_difference, filter)
+            final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
+            del filter
+            torch.cuda.empty_cache()  # Release unoccupied memory
+        else:
+            raise ValueError("Wrong loss function for feature distillation")
 
-    final_feature_distillation_loss = sum(final_feature_distillation_loss)
+    final_feature_distillation_loss = sum(final_feature_distillation_loss) / num_levels
 
     return final_feature_distillation_loss
 

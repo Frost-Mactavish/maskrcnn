@@ -120,7 +120,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         if not math.isfinite(loss := losses_reduced.item()):
-            print(f"Loss is {loss}, stop training")
+            logger.info(f"Loss is {loss}, stop training")
             sys.exit(1)
 
         if (iteration - 1) > 0:
@@ -248,19 +248,21 @@ def main():
     random.seed(random_seed)
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-    parser.add_argument("-n", "--name", default="EXP")
-    parser.add_argument("-d", "--dataset", type=str, default="DIOR")
-    parser.add_argument("-t", "--task", type=str, default="15-5")
+    parser.add_argument("-n", "--name", default="ABR")
+    parser.add_argument("-d", "--dataset", default="DIOR", type=str)
+    parser.add_argument("-t", "--task", default="19-1", type=str)
     parser.add_argument("-s", "--step", default=1, type=int)
     parser.add_argument("--inc", default=False, action='store_true')
     parser.add_argument("--feat", default="no", type=str, choices=['no', 'std', 'ard'])
     parser.add_argument("--dist_type", default="l2", type=str, choices=['l2', 'id', 'none'])
-    parser.add_argument("-gamma", "--att_gamma", default=0., type=float)
     parser.add_argument("-alpha", "--alpha_inclusive_distillation", default=0., type=float)
     parser.add_argument("-beta", "--beta_attentive_roi_distillation", default=0., type=float)
+    parser.add_argument("-gamma", "--att_gamma", default=0., type=float)
     parser.add_argument("-mb", "--memory_buffer", default=0, type=int)
     parser.add_argument("-mt", "--memory_type", default=None, type=str, 
                         choices=['mean', 'random', 'herding'])
+    parser.add_argument("opts", help="Modify config options using the command-line",
+                        default=None, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
 
@@ -270,6 +272,7 @@ def main():
     else:
         config_file = f"configs/{args.dataset}/{args.task}/RB_target.yaml"
     cfg.merge_from_file(config_file)
+    cfg.merge_from_list(args.opts)
 
     full_name = f"log/{args.dataset}/{args.task}/{args.name}"
 
