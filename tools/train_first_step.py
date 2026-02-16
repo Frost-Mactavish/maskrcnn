@@ -57,6 +57,8 @@ def train(cfg):
         arguments,
     )
 
+    checkpointer.save("model_trimmed", trim=True, **arguments)
+
     return model
 
 
@@ -94,7 +96,7 @@ def main():
     parser.add_argument("--config-file", "-c", default="", help="path to config file", type=str)
     parser.add_argument("--finetune", "-ft", default=False, action="store_true")
     parser.add_argument("opts", help="Modify config options using the command-line",
-                        default=None,nargs=argparse.REMAINDER)
+                        default=None, nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
 

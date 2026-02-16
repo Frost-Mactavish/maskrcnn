@@ -7,6 +7,8 @@ env_name=$1
 conda create -n ${env_name} python=3.8 -y
 conda activate ${env_name}
 
+# cudatoolkit version should be same as that of pytorch
+# otherwise it will cause error compiling csrc
 conda install gcc=9.5 gxx=9.5 cudatoolkit-dev=11.1 -c conda-forge -y
 conda install scipy==1.7.3 six==1.16.0 setuptools==59.5.0 tensorboard==2.10.0 -c conda-forge -y
 conda install ipython pip ninja yacs cython matplotlib tqdm pycocotools -c conda-forge -y

@@ -90,12 +90,19 @@ class FPN2MLPFeatureExtractor(nn.Module):
                 # print('requires_grad: {0}'.format(param.requires_grad))
 
     def forward(self, x, proposals):
-        x = self.pooler(x, proposals)
-        x = x.view(x.size(0), -1)
+        roi_align_features = self.pooler(x, proposals)
+        x = roi_align_features.view(roi_align_features.size(0), -1)
 
         x = F.relu(self.fc6(x))
         x = F.relu(self.fc7(x))
 
+        return x, roi_align_features
+
+    def feature_distillation(self, x, proposals):
+        roi_align_features = self.pooler(x, proposals)
+        x = roi_align_features.view(roi_align_features.size(0), -1)
+        x = F.relu(self.fc6(x))
+        x = F.relu(self.fc7(x))
         return x
 
 

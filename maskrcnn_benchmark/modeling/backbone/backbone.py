@@ -1,12 +1,32 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 from collections import OrderedDict
-
 from torch import nn
 
 from maskrcnn_benchmark.modeling import registry
 from maskrcnn_benchmark.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
+
+
+class FPNBackbone(nn.Module):
+    """
+    Wrapper for FPN backbone that correctly handles the ResNet's dual return values.
+    ResNet returns (outputs, backbone_features), this wrapper passes outputs to FPN
+    and returns (fpn_features, backbone_features) for distillation purposes.
+    """
+    def __init__(self, body, fpn):
+        super(FPNBackbone, self).__init__()
+        self.body = body
+        self.fpn = fpn
+
+    def forward(self, x):
+        # body returns (outputs, backbone_features)
+        # outputs: list of feature maps at return_features=True stages (for FPN input)
+        # backbone_features: list of all stage features (for distillation)
+        body_outputs, backbone_features = self.body(x)
+        # Pass outputs to FPN
+        fpn_features = self.fpn(body_outputs)
+        return fpn_features, backbone_features
 
 
 @registry.BACKBONES.register("R-50-C4")
@@ -40,33 +60,21 @@ def build_resnet_fpn_backbone(cfg):
         ),
         top_blocks=fpn_module.LastLevelMaxPool(),
     )
-    model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
+    # Use FPNBackbone wrapper instead of nn.Sequential to properly handle
+    # ResNet's dual return values (outputs, backbone_features)
+    model = FPNBackbone(body, fpn)
     model.out_channels = out_channels
 
     if cfg.MODEL.BACKBONE.ALL_FREEZE:
         print('backbone.py | freeze whole backbone network')
         for name, param in model.named_parameters():
-            # print("parameter name: {0}, size : {1}".format(name, param.size()))
-            # print("requires_grad : {0}".format(param.requires_grad))
             param.requires_grad = False
-            # print("requires_grad : {0}".format(param.requires_grad))
 
     if cfg.MODEL.BACKBONE.FPN_FREEZE:
         print('backbone.py | freeze FPN layers')
         for name, param in model.named_parameters():
             if 'fpn' in name:
-                # print("parameter name: {0}, size : {1}".format(name, param.size()))
-                # print("requires_grad : {0}".format(param.requires_grad))
                 param.requires_grad = False
-                # print("requires_grad : {0}".format(param.requires_grad))
-
-    """
-    # check parameters freezing condition
-    print('backbone.py | check parameters freezing condition')
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print("parameter name: {0}, requires_grad : {1}".format(name, param.requires_grad))
-    """
 
     return model
 

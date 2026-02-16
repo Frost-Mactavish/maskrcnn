@@ -2,25 +2,26 @@ MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   BACKBONE:
-    CONV_BODY: "R-50-C4"
+    CONV_BODY: "R-50-FPN"
   RESNETS:
-    BACKBONE_OUT_CHANNELS: 1024
+    BACKBONE_OUT_CHANNELS: 256
   RPN:
-    USE_FPN: False
-    ANCHOR_STRIDE: (16,)
-    PRE_NMS_TOP_N_TRAIN: 12000
-    PRE_NMS_TOP_N_TEST: 6000
+    USE_FPN: True
+    ANCHOR_STRIDE: (4, 8, 16, 32, 64)
+    PRE_NMS_TOP_N_TRAIN: 2000
+    PRE_NMS_TOP_N_TEST: 1000
     POST_NMS_TOP_N_TRAIN: 2000
     POST_NMS_TOP_N_TEST: 1000
-    EXTERNAL_PROPOSAL: False
+    FPN_POST_NMS_TOP_N_TRAIN: 2000
+    FPN_POST_NMS_TOP_N_TEST: 1000
   ROI_HEADS:
-    USE_FPN: False
+    USE_FPN: True
   ROI_BOX_HEAD:
     POOLER_RESOLUTION: 7
-    POOLER_SCALES: (0.0625,)
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
     POOLER_SAMPLING_RATIO: 2
-    FEATURE_EXTRACTOR: "ResNet50Conv5ROIFeatureExtractor"
-    PREDICTOR: "FastRCNNPredictor"
+    FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
+    PREDICTOR: "FPNPredictor"
     NUM_CLASSES: 2 # total classes : 19 + 1
     NAME_OLD_CLASSES: [ ]
     NAME_EXCLUDED_CLASSES: [ "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam", "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor", "overpass", "stadium", "storagetank", "trainstation" ]
@@ -29,7 +30,8 @@ DATASETS:
   TRAIN: ("dior_train",)
   TEST: ("dior_test",)
 DATALOADER:
-  SIZE_DIVISIBILITY: 0
+  NUM_WORKERS: 8
+  SIZE_DIVISIBILITY: 32
 SOLVER:
   BASE_LR: 0.01 # start learning rate
   WEIGHT_DECAY: 0.0001

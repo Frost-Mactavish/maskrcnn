@@ -461,15 +461,8 @@ _C.PATHS_CATALOG = os.path.join(os.path.dirname(__file__), "paths_catalog.py")
 # ---------------------------------------------------------------------------- #
 _C.INCREMENTAL = False
 _C.DIST = CN()
-_C.DIST.ROI_ALIGN = False
-_C.DIST.TYPE = 'l2'
 _C.DIST.RPN = False
-_C.DIST.FEAT = False
-_C.DIST.ATT = False
 _C.DIST.CLS = 0.
-_C.DIST.ALPHA = 0.
-_C.DIST.BETA = 0.
-_C.DIST.GAMMA = 0.
 
 # ---------------------------------------------------------------------------- #
 # Precision options

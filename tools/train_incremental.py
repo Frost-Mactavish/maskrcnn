@@ -16,8 +16,8 @@ from tqdm import tqdm
 
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
-from maskrcnn_benchmark.distillation.distillation import calculate_rpn_distillation_loss
-from maskrcnn_benchmark.distillation.finetune_distillation_all import (
+from maskrcnn_benchmark.distillation.distillation import (
+    calculate_rpn_distillation_loss,
     soften_proposales_iou_targets,
     calculate_roi_scores_distillation_losses_old_raw,
     calculate_roi_scores_distillation_losses_new_raw,
@@ -213,7 +213,7 @@ def do_train(
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
         if not math.isfinite(loss := losses_reduced.item()):
-            print(f"Loss is {loss}, stop training")
+            logger.info(f"Loss is {loss}, stop training")
             sys.exit(1)
 
         if (iteration - 1) > 0:
@@ -451,37 +451,28 @@ def main():
     torch.cuda.manual_seed(random_seed)
     np.random.seed(random_seed)
     random.seed(random_seed)
-    print(random.randint(1, 1000))
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
-    parser.add_argument("-n", "--name", default="EXP", type=str)
+    parser.add_argument("-n", "--name", default="BPF", type=str)
     parser.add_argument("-d", "--dataset", default="DIOR", type=str)
-    parser.add_argument("-t", "--task", type=str, default="15-5")
+    parser.add_argument("-t", "--task", type=str, default="19-1")
     parser.add_argument("-s", "--step", default=1, type=int)
 
-    parser.add_argument("--ist", default=False, action="store_true")
     parser.add_argument("--rpn", default=False, action="store_true")
-    parser.add_argument("--feat", default="no", type=str,
-                        choices=["no", "std", "align", "att", "ard"])
     parser.add_argument("--uce", default=False, action="store_true")
     parser.add_argument("--init", default=False, action="store_true")
-    parser.add_argument("--bg", default=False, action="store_true")
-    parser.add_argument("--inv", default=False, action="store_true")
-    parser.add_argument("--mask", default=1.0, type=float,)
-    parser.add_argument("--cls", default=1.0, type=float,)
-    parser.add_argument("--alpha", default=1.0, type=float,)
-    parser.add_argument("--beta", default=1.0, type=float)
-    parser.add_argument("--gamma", default=1.0, type=float,)
-    parser.add_argument("--dist_type", default="l2", type=str,
-                        choices=["uce", "ce", "ce_ada", "ce_all", "l2", "none"],)
-    parser.add_argument("-low", "--iou_low", default=0.4, type=float)
-    parser.add_argument("-high", "--iou_high", default=0.7, type=float)
+    parser.add_argument("--cls", default=1.0, type=float)
+    parser.add_argument("-il", "--iou_low", default=0.4, type=float)
+    parser.add_argument("-ih", "--iou_high", default=0.7, type=float)
     parser.add_argument("-lw", "--low_weight", default=1.0, type=float)
     parser.add_argument("-hw", "--high_weight", default=0.3, type=float)
+    parser.add_argument("opts", help="Modify config options using the command-line",
+                        default=None, nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
     config_file = (f"configs/{args.dataset}/{args.task}/target.yaml")
     cfg.merge_from_file(config_file)
+    cfg.merge_from_list(args.opts)
     full_name = f"log/{args.dataset}/{args.task}/{args.name}"
 
     cfg_source = cfg.clone()
@@ -534,10 +525,7 @@ def main():
     cfg_target.TASK = args.task
     cfg_target.STEP = args.step
 
-    cfg_target.DIST.MASK = args.mask if args.ist else 0.0
     cfg_target.DIST.RPN = args.rpn
-    cfg_target.DIST.INV_CLS = args.inv
-    cfg_target.DIST.FEAT = args.feat
     if args.cls != -1:
         cfg_target.DIST.CLS = args.cls
     else:
@@ -545,12 +533,7 @@ def main():
                 len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES)
                 / cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         )
-    cfg_target.DIST.TYPE = args.dist_type
     cfg_target.DIST.INIT = args.init
-    cfg_target.DIST.ALPHA = args.alpha
-    cfg_target.DIST.BETA = args.beta
-    cfg_target.DIST.GAMMA = args.gamma
-    cfg_target.DIST.BG = args.bg
     cfg_target.INCREMENTAL = args.uce
     cfg_target.IOU_LOW = args.iou_low
     cfg_target.IOU_HIGH = args.iou_high

@@ -37,27 +37,17 @@ class RPNLossComputation(object):
         self.discard_cases = ['not_visibility', 'between_thresholds']
 
     def match_targets_to_anchors(self, anchor, target, copied_fields=[]):
-
-        # print('rpn | loss.py | match_targets_to_anchors | anchor : {0}'.format(anchor))
-        # print('rpn | loss.py | match_targets_to_anchors | target : {0}'.format(target))
-        match_quality_matrix = boxlist_iou(target, anchor)  # [num of target box, num of bounding box]
-        # print('rpn | loss.py | match_targets_to_anchors | match_quality_matrix size : {0}'.format(match_quality_matrix.size()))
-
-        # value = 0 ~ (M-1) means which gt to match to
-        # value = -1 or -2 means no gt to match to, -1 = below_low_threshold, -2 = between_thresholds
-        matched_idxs = self.proposal_matcher(match_quality_matrix)  # [num of bounding box]
-        # print('rpn | loss.py | match_targets_to_anchors | matched_idxs size : {0}'.format(matched_idxs.size()))
-
-        # RPN doesn't need any fields from target for creating the labels, so clear them all
+        match_quality_matrix = boxlist_iou(target, anchor)
+        matched_idxs = self.proposal_matcher(match_quality_matrix)
+        # RPN doesn't need any fields from target
+        # for creating the labels, so clear them all
         target = target.copy_with_fields(copied_fields)
-
         # get the targets corresponding GT for each anchor
-        # need to clamp the indices because we can have a single GT in the image, and matched_idxs can be -2, which goes out of bounds
+        # NB: need to clamp the indices because we can have a single
+        # GT in the image, and matched_idxs can be -2, which goes
+        # out of bounds
         matched_targets = target[matched_idxs.clamp(min=0)]
-        # print('rpn | loss.py | match_targets_to_anchors | matched_targets : {0}'.format(matched_targets))
-
         matched_targets.add_field("matched_idxs", matched_idxs)
-
         return matched_targets, match_quality_matrix
 
     def prepare_targets(self, anchors, targets):
@@ -88,8 +78,6 @@ class RPNLossComputation(object):
                 inds_to_discard = matched_idxs == Matcher.BETWEEN_THRESHOLDS
                 labels_per_image[inds_to_discard] = -1  # make these anchors' label to be -1
 
-            # print('rpn | loss.py | prepare_targets | labels_per_image size : {0}'.format(labels_per_image.size()))
-
             # compute regression targets
             regression_targets_per_image = self.box_coder.encode(matched_targets.bbox, anchors_per_image.bbox)
 
@@ -115,7 +103,7 @@ class RPNLossComputation(object):
 
         with torch.no_grad():
             flatten_obj = torch.flatten(objectness[0])
-        # anchors: [Boxlist(num_boxes=57000), ...]
+
         anchors = [cat_boxlist(anchors_per_image) for anchors_per_image in anchors]
         labels, regression_targets, overlap_result, matched_result = self.prepare_targets(anchors, targets)
         sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels, flatten_obj)
@@ -134,7 +122,6 @@ class RPNLossComputation(object):
 
         box_loss = smooth_l1_loss(box_regression[sampled_pos_inds], regression_targets[sampled_pos_inds], beta=1.0 / 9,
                                   size_average=False) / (sampled_inds.numel())
-        # print('rpn | loss.py | call | box_loss : {0}'.format(box_loss))
 
         # final_labels, final_idx = transform_labels_neg_index_incremental(labels, sampled_pos_inds, sampled_neg_inds,
         #                                                      objectness_source, objectness)

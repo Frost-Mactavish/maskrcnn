@@ -1,5 +1,4 @@
 #!/bin/bash
-# Do base training and finetune for Single-increment Experiment
 
 alias exp="python tools/train_first_step.py"
 

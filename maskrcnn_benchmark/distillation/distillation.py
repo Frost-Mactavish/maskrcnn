@@ -2,12 +2,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from maskrcnn_benchmark.layers import smooth_l1_loss
 from maskrcnn_benchmark.modeling.rpn.utils import permute_and_flatten
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
 
-def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss=None, bbox_loss=None,
-                                    bbox_threshold=None):
+def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_loss=None, bbox_loss=None, bbox_threshold=None):
     rpn_objectness_source, rpn_bbox_regression_source = rpn_output_source
     rpn_objectness_target, rpn_bbox_regression_target = rpn_output_target
 
@@ -114,327 +113,91 @@ def calculate_rpn_distillation_loss(rpn_output_source, rpn_output_target, cls_lo
     return final_rpn_loss
 
 
-def calculate_roi_align_distillation(source_roi_align_features, target_roi_align_features):
-    final_roi_align_distillation_loss = []
+def soften_proposales_iou_targets(soften_proposals, targets):
+    # calculate the iou with gt and check out
+    soften_proposals_indexes = []
+    finetune_proposals_indexes = []
+    for per_soften_proposal, per_target in zip(soften_proposals, targets):
+        per_match_quality_matrix = boxlist_iou(per_target, per_soften_proposal).t()
 
-    l2_loss = nn.MSELoss(size_average=False, reduce=False)
-    roi_align_distillation_loss = l2_loss(source_roi_align_features, target_roi_align_features)
-    final_roi_align_distillation_loss.append(torch.mean(roi_align_distillation_loss))
+        # find the index of proposals for the old classes (iou < 0.5 for all GT)
+        per_iou_less_than_05_mask = per_match_quality_matrix <= 0.5
+        per_iou_less_than_05_indices = torch.nonzero(per_iou_less_than_05_mask.all(dim=1)).squeeze(1)
+        soften_proposals_indexes.append(per_iou_less_than_05_indices)
 
-    return sum(final_roi_align_distillation_loss)
+        # find the index of proposals for the new classes (iou > 0.5 for all GT)
+        per_iou_greater_than_05_mask = per_match_quality_matrix > 0.5
+        per_iou_greater_than_05_indices = torch.nonzero(per_iou_greater_than_05_mask.any(dim=1)).squeeze(1)
+        finetune_proposals_indexes.append(per_iou_greater_than_05_indices)
 
-
-def calculate_feature_distillation_loss(source_features, target_features, loss=None):  # pixel-wise
-    num_source_features = len(source_features)
-    num_target_features = len(target_features)
-    final_feature_distillation_loss = []
-
-    if num_source_features == num_target_features:
-        for i in range(num_source_features):
-            source_feature = source_features[i]
-            target_feature = target_features[i]
-            if loss == 'l2':
-                l2_loss = nn.MSELoss(size_average=False, reduce=False)
-                feature_distillation_loss = l2_loss(source_feature, target_feature)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-            elif loss == 'l1':
-                feature_distillation_loss = torch.abs(source_feature - target_feature)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-            elif loss == 'smooth_l1':
-                feature_distillation_loss = smooth_l1_loss(source_feature, target_feature, size_average=True, beta=1)
-                final_feature_distillation_loss.append(feature_distillation_loss)
-            elif loss == 'normalized_filtered_l1':
-                source_feature_avg = torch.mean(source_feature)
-                target_feature_avg = torch.mean(target_feature)
-                normalized_source_feature = source_feature - source_feature_avg  # normalize features
-                normalized_target_feature = target_feature - target_feature_avg
-                feature_difference = normalized_source_feature - normalized_target_feature
-                feature_size = feature_difference.size()
-                filter = torch.zeros(feature_size).to('cuda')
-                feature_distillation_loss = torch.max(feature_difference, filter)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-                del filter
-                torch.cuda.empty_cache()  # Release unoccupied memory
-            elif loss == 'normalized_filtered_l2':
-                source_feature_avg = torch.mean(source_feature)
-                target_feature_avg = torch.mean(target_feature)
-                normalized_source_feature = source_feature - source_feature_avg  # normalize features
-                normalized_target_feature = target_feature - target_feature_avg  # normalize features
-                feature_difference = normalized_source_feature - normalized_target_feature
-                feature_size = feature_difference.size()
-                filter = torch.zeros(feature_size).to('cuda')
-                feature_distillation = torch.max(feature_difference, filter)
-                feature_distillation_loss = torch.mul(feature_distillation, feature_distillation)
-                final_feature_distillation_loss.append(torch.mean(feature_distillation_loss))
-                del filter
-                torch.cuda.empty_cache()  # Release unoccupied memory
-            else:
-                raise ValueError("Wrong loss function for feature distillation")
-    else:
-        raise ValueError("Number of source features must equal to number of target features")
-
-    final_feature_distillation_loss = sum(final_feature_distillation_loss)
-
-    return final_feature_distillation_loss
+    return soften_proposals_indexes, finetune_proposals_indexes
 
 
-def calculate_roi_distillation_loss(soften_results, target_results, cls_preprocess=None, cls_loss=None, bbs_loss=None,
-                                    temperature=1):
+def calculate_roi_scores_distillation_losses_old_raw(soften_results, finetune_results, target_results):
+    # soften: [num_proposal, 11],   finetune: [num_proposal, 11],   target: [num_proposal, 21]
     soften_scores, soften_bboxes = soften_results
     target_scores, target_bboxes = target_results
-    num_of_distillation_categories = soften_scores.size()[1]
+    finetune_scores, finetune_bboxes = finetune_results
 
-    # compute distillation loss
-    if cls_preprocess == 'sigmoid':
-        soften_scores = F.sigmoid(soften_scores)
-        target_scores = F.sigmoid(target_scores)
-        modified_soften_scores = soften_scores[:, : num_of_distillation_categories]  # include background
-        modified_target_scores = target_scores[:, : num_of_distillation_categories]  # include background
-    elif cls_preprocess == 'softmax':  # exp(x_i) / exp(x).sum()
-        modified_soften_scores = F.softmax(soften_scores, dim=1)
-        modified_target_scores = F.log_softmax(target_scores[:, : num_of_distillation_categories], dim=1)
-    elif cls_preprocess == 'softmax_all':  # exp(x_i) / exp(x).sum()
-        modified_soften_scores = F.softmax(soften_scores, dim=1)
-        modified_target_scores = F.log_softmax(target_scores, dim=1)[:, : num_of_distillation_categories]
-    elif cls_preprocess == 'log_softmax':  # log( exp(x_i) / exp(x).sum() )
-        soften_scores = F.log_softmax(soften_scores)
-        target_scores = F.log_softmax(target_scores)
-        modified_soften_scores = soften_scores[:, : num_of_distillation_categories]  # include background
-        modified_target_scores = target_scores[:, : num_of_distillation_categories]  # include background
-    elif cls_preprocess == 'normalization':
-        class_wise_soften_scores_avg = torch.mean(soften_scores, dim=1).view(-1, 1)
-        class_wise_target_scores_avg = torch.mean(target_scores, dim=1).view(-1, 1)
-        normalized_soften_scores = torch.sub(soften_scores, class_wise_soften_scores_avg)
-        normalized_target_scores = torch.sub(target_scores, class_wise_target_scores_avg)
-        modified_soften_scores = normalized_target_scores[:, : num_of_distillation_categories]  # include background
-        modified_target_scores = normalized_soften_scores[:, : num_of_distillation_categories]  # include background
-    elif cls_preprocess == 'raw':
-        modified_soften_scores = soften_scores[:, : num_of_distillation_categories]  # include background
-        modified_target_scores = target_scores[:, : num_of_distillation_categories]  # include background
-    elif cls_preprocess == 'none':  # FOR UNBIAS CROSS ENTROPY USE THIS
-        modified_soften_scores = soften_scores
-        modified_target_scores = target_scores
-    else:
-        raise ValueError("Wrong preprocessing method for raw classification output")
+    num_of_distillation_categories = soften_scores.size()[1]  # [11]
+    tot_classes = target_scores.size()[1]  # [21]
 
-    tot_classes = target_scores.size()[1]
-    if cls_loss == 'l2':
-        l2_loss = nn.MSELoss(size_average=False, reduce=False)
-        class_distillation_loss = l2_loss(modified_soften_scores, modified_target_scores)
-        class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
-                                             dim=0)  # average towards categories and proposals
-    elif cls_loss == 'cross-entropy':  # softmax/sigmoid + cross-entropy
-        class_distillation_loss = - modified_soften_scores * modified_target_scores
-        class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
-                                             dim=0)  # average towards categories and proposals
-    elif cls_loss == 'cross-entropy-sum':  # softmax/sigmoid + cross-entropy
-        class_distillation_loss = - modified_soften_scores * modified_target_scores
-        class_distillation_loss = torch.mean(
-            torch.sum(class_distillation_loss, dim=1))  # average towards categories and proposals
-    elif cls_loss == 'unbiased-cross-entropy':
-        new_bkg_idx = torch.tensor([0] + [x for x in range(
-            num_of_distillation_categories, tot_classes)]).to(target_scores.device)
-        den = torch.logsumexp(modified_target_scores, dim=1)
-        outputs_no_bgk = modified_target_scores[:, 1:-(tot_classes - num_of_distillation_categories)] - den.unsqueeze(
-            dim=1)
-        outputs_bkg = torch.logsumexp(torch.index_select(modified_target_scores, index=new_bkg_idx, dim=1), dim=1) - den
-        labels = torch.softmax(modified_soften_scores, dim=1)
-        # make the average on the classes 1/n_cl \sum{c=1..n_cl} L_c
-        loss = (labels[:, 0] * outputs_bkg + (labels[:, 1:] * outputs_no_bgk).sum(dim=1)) / soften_scores.shape[1]
-        class_distillation_loss = -torch.mean(loss)
-    elif cls_loss == 'softmax cross-entropy with temperature':  # raw + softmax cross-entropy with temperature
-        log_softmax = nn.LogSoftmax()
-        softmax = nn.Softmax()
-        class_distillation_loss = - softmax(modified_soften_scores / temperature) * log_softmax(
-            modified_target_scores / temperature)
-        class_distillation_loss = class_distillation_loss * temperature * temperature
-        class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
-                                             dim=0)  # average towards categories and proposals
-    elif cls_loss == 'filtered_l2':
-        cls_difference = modified_soften_scores - modified_target_scores
-        filter = torch.zeros(modified_soften_scores.size()).to('cuda')
-        class_distillation_loss = torch.max(cls_difference, filter)
-        class_distillation_loss = class_distillation_loss * class_distillation_loss
-        class_distillation_loss = torch.mean(torch.mean(class_distillation_loss, dim=1),
-                                             dim=0)  # average towards categories and proposals
-        del filter
-        torch.cuda.empty_cache()  # Release unoccupied memory
-    else:
-        raise ValueError("Wrong loss function for classification")
+    soften_labels = torch.softmax(soften_scores, dim=1)
+    finetune_labels = torch.softmax(finetune_scores, dim=1)
+    modified_target_scores = F.log_softmax(target_scores[:, :], dim=1)
+
+    soften_bg_probability = soften_labels[:, 0].unsqueeze(1)
+    finetune_sums = finetune_labels.sum(dim=1, keepdim=True)
+    scale_factors = soften_bg_probability / finetune_sums
+    scaled_finetune_labels = finetune_labels * scale_factors
+
+    distillation_labels = torch.cat(
+        [torch.cat([scaled_finetune_labels[:, 0].unsqueeze(1), soften_labels[:, 1:]], dim=1),
+         scaled_finetune_labels[:, 1:]], dim=1)
+    class_distillation_loss = - distillation_labels * modified_target_scores
+    class_distillation_loss_raw = torch.mean(class_distillation_loss, dim=1)  # average towards categories and proposals
 
     # compute distillation bbox loss
     modified_soften_boxes = soften_bboxes[:, 1:, :]  # exclude background bbox
     modified_target_bboxes = target_bboxes[:, 1:num_of_distillation_categories, :]  # exclude background bbox
-    if bbs_loss == 'l2':
-        l2_loss = nn.MSELoss(size_average=False, reduce=False)
-        bbox_distillation_loss = l2_loss(modified_target_bboxes, modified_soften_boxes)
-        bbox_distillation_loss = torch.mean(torch.mean(torch.sum(bbox_distillation_loss, dim=2), dim=1),
-                                            dim=0)  # average towards categories and proposals
-    elif bbs_loss == 'smooth_l1':
-        num_bboxes = modified_target_bboxes.size()[0]
-        num_categories = modified_target_bboxes.size()[1]
-        bbox_distillation_loss = smooth_l1_loss(modified_target_bboxes, modified_soften_boxes, size_average=False,
-                                                beta=1)
-        bbox_distillation_loss = bbox_distillation_loss / (
-                num_bboxes * num_categories)  # average towards categories and proposals
-    else:
-        raise ValueError("Wrong loss function for bounding box regression")
 
-    roi_distillation_losses = torch.add(class_distillation_loss, bbox_distillation_loss)
-
-    return roi_distillation_losses
-
-
-def calculate_roi_distillation_losses(soften_results, target_results, dist='l2'):
-    if dist == 'ce':
-        cls_preprocess = 'softmax'
-        cls_loss = 'cross-entropy'
-        bbs_loss = 'l2'
-        temperature = 1
-    elif dist == 'ce_ada':
-        cls_preprocess = 'softmax'
-        cls_loss = 'cross-entropy-sum'
-        bbs_loss = 'l2'
-        temperature = 1
-    elif dist == 'ce_all':
-        cls_preprocess = 'softmax_all'
-        cls_loss = 'cross-entropy'
-        bbs_loss = 'l2'
-        temperature = 1
-    elif dist == 'uce':
-        cls_preprocess = 'none'
-        cls_loss = 'unbiased-cross-entropy'
-        bbs_loss = 'l2'
-        temperature = 1
-    else:
-        cls_preprocess = 'normalization'
-        cls_loss = 'l2'
-        bbs_loss = 'l2'
-        temperature = 1
-
-    roi_distillation_losses = calculate_roi_distillation_loss(
-        soften_results, target_results, cls_preprocess, cls_loss, bbs_loss, temperature)
-
-    return roi_distillation_losses
-
-
-def calculate_mask_distillation_losses(soften_mask_logits, target_mask_logits):
-    num_of_distillation_categories = soften_mask_logits.shape[1]
-    soften_mask_logits = torch.sigmoid(soften_mask_logits)
-    old_classes_target_mask_logits = target_mask_logits[:, :num_of_distillation_categories]
-    mask_distillation_loss = nn.functional.binary_cross_entropy_with_logits(old_classes_target_mask_logits,
-                                                                            soften_mask_logits)
-    return mask_distillation_loss
-
-
-def calculate_roi_distillation_losses_old(model_source, model_target, images, gt_proposals=None, distributed=False,
-                                          dist='l2'):
-    # --- calculate roi-subnet classification and bbox regression distillation loss ---
-    # do test on the pre-trained frozen source model to get the soften label
-    with torch.no_grad():
-        soften_result, soften_mask_logits, soften_proposal, feature_source, backbone_feature_source, anchor_source, rpn_output_source, roi_align_features_source = \
-            model_source.generate_soften_proposal(images)
-
-    # use soften proposal and soften result to calculate distillation loss
-    # 'num_of_distillation_categories' = number of categories for source model including background
-    if distributed:
-        model_target = model_target.module
-
-    if dist == 'ce':
-        roi_distillation_losses, roi_align_features_target = model_target.calculate_roi_distillation_loss(
-            images, soften_proposal, soften_result, cls_preprocess='softmax', cls_loss='cross-entropy', bbs_loss='l2',
-            temperature=1)
-    elif dist == 'uce':
-        roi_distillation_losses, roi_align_features_target = model_target.calculate_roi_distillation_loss(
-            images, soften_proposal, soften_result, cls_preprocess='raw', cls_loss='unbiased-cross-entropy',
-            bbs_loss='l2', temperature=1)
-    else:
-        roi_distillation_losses, roi_align_features_target = model_target.calculate_roi_distillation_loss(
-            images, soften_proposal, soften_result, cls_preprocess='normalization', cls_loss='l2', bbs_loss='l2',
-            temperature=1)
-
-    return roi_distillation_losses, rpn_output_source, feature_source, backbone_feature_source, \
-        soften_result, soften_proposal, roi_align_features_source, roi_align_features_target
-
-
-def calculate_attentive_roi_feature_distillation(f_map_s, f_map_t, gamma=1.0):
-    """
-    Args:
-        f_map_s(Tensor): Bs*C*H*W, student's feature map
-        f_map_t(Tensor): Bs*C*H*W, teacher's feature map
-    """
-    temp = 2
-
-    S_attention_t = activation_at(f_map_s, temp)
-    S_attention_s = activation_at(f_map_t, temp)
-
-    loss_pad = pad_loss(S_attention_s, S_attention_t)
-    loss_afd = afd_loss(f_map_s, f_map_t, S_attention_t)
-    combined_loss = loss_afd + gamma * loss_pad
-    return combined_loss
-
-
-def afd_loss(f_map_s, f_map_t, S_t):
-    loss_mse = nn.MSELoss(reduction='mean')
-    S_t = S_t.unsqueeze(dim=1)
-
-    fea_t = torch.mul(f_map_t, torch.sqrt(S_t))
-    fea_s = torch.mul(f_map_s, torch.sqrt(S_t))
-
-    loss = loss_mse(fea_s, fea_t)
-    return loss
-
-
-def pad_loss(S_s, S_t):
-    loss_l1 = nn.L1Loss(reduction='mean')
-    loss = loss_l1(S_s, S_t)
-
-    return loss
-
-
-def activation_at(f_map, temp=2):
-    N, C, H, W = f_map.shape
-
-    value = torch.abs(f_map)
-    # Bs*W*H
-    fea_map = value.pow(temp).mean(axis=1, keepdim=True)
-    # S_attention = (H * W * F.softmax(fea_map.view(N, -1)/temp, dim=1)).view(N, H, W)
-    S_attention = (H * W * F.softmax(fea_map.view(N, -1), dim=1)).view(N, H, W)
-
-    return S_attention
-
-
-def calculate_roi_distillation_loss_finetune_only(finetune_soften_results, target_results):
-    target_scores, target_bboxes = target_results
-    finetune_soften_scores, finetune_soften_bboxes = finetune_soften_results
-    num_of_old_categories = finetune_soften_scores.size()[1] - 2  # [bg, num_of_old_classes, unk]
-
-    # compute distillation loss
-    tot_classes = target_scores.size()[1]
-
-    # 'unbiased-cross-entropy':
-    new_idx = torch.tensor([x for x in range(1 + num_of_old_categories, tot_classes)]).to(target_scores.device)
-
-    den = torch.logsumexp(target_scores, dim=1)
-    outputs_no_new = target_scores[:, 0:num_of_old_categories + 1] - den.unsqueeze(dim=1)
-    outputs_new = torch.logsumexp(torch.index_select(target_scores, index=new_idx, dim=1), dim=1) - den
-
-    labels = torch.softmax(finetune_soften_scores, dim=1)
-    # make the average on the classes 1/n_cl \sum{c=1..n_cl} L_c
-    # import pdb
-    # pdb.set_trace()
-    loss = (labels[:, -1] * outputs_new + (labels[:, :-1] * outputs_no_new).sum(dim=1)) / finetune_soften_scores.shape[
-        1]
-    class_distillation_loss = -torch.mean(loss)
-
-    # compute distillation bbox loss "l2 loss"
-    modified_soften_boxes = finetune_soften_bboxes[:, 1:-1, :]  # exclude background bbox
-    modified_target_bboxes = target_bboxes[:, 1:1 + num_of_old_categories, :]  # exclude background bbox
     l2_loss = nn.MSELoss(size_average=False, reduce=False)
     bbox_distillation_loss = l2_loss(modified_target_bboxes, modified_soften_boxes)
-    bbox_distillation_loss = torch.mean(torch.mean(torch.sum(bbox_distillation_loss, dim=2), dim=1),
-                                        dim=0)  # average towards categories and proposals
+    bbox_distillation_loss_raw = torch.mean(torch.sum(bbox_distillation_loss, dim=2),
+                                            dim=1)  # average towards categories and proposals
 
-    roi_distillation_losses = torch.add(class_distillation_loss, bbox_distillation_loss)
+    return class_distillation_loss_raw, bbox_distillation_loss_raw
 
-    return roi_distillation_losses
+
+def calculate_roi_scores_distillation_losses_new_raw(soften_results, finetune_results, target_results):
+    # soften: [num_proposal, 11],   finetune: [num_proposal, 11],   target: [num_proposal, 21]
+    soften_scores, soften_bboxes = soften_results
+    target_scores, target_bboxes = target_results
+    finetune_scores, finetune_bboxes = finetune_results
+
+    num_of_distillation_categories = soften_scores.size()[1]  # [11]
+    tot_classes = target_scores.size()[1]  # [21]
+
+    soften_labels = torch.softmax(soften_scores, dim=1)
+    finetune_labels = torch.softmax(finetune_scores, dim=1)
+    modified_target_scores = F.log_softmax(target_scores[:, :], dim=1)
+
+    finetune_bg_probability = finetune_labels[:, 0].unsqueeze(1)
+    soften_sums = soften_labels.sum(dim=1, keepdim=True)
+    scale_factors = finetune_bg_probability / soften_sums
+    scaled_soften_labels = soften_labels * scale_factors
+
+    distillation_labels = torch.cat([scaled_soften_labels, finetune_labels[:, 1:]], dim=1)
+    class_distillation_loss = - distillation_labels * modified_target_scores
+    class_distillation_loss_raw = torch.mean(class_distillation_loss, dim=1)  # average towards categories and proposals
+
+    # compute distillation bbox loss
+    modified_finetune_boxes = finetune_bboxes[:, 1:, :]  # exclude background bbox
+    modified_target_bboxes = target_bboxes[:, num_of_distillation_categories:, :]  # exclude background bbox
+
+    l2_loss = nn.MSELoss(size_average=False, reduce=False)
+    bbox_distillation_loss = l2_loss(modified_target_bboxes, modified_finetune_boxes)
+    bbox_distillation_loss_raw = torch.mean(torch.sum(bbox_distillation_loss, dim=2),
+                                            dim=1)  # average towards categories and proposals
+
+    return class_distillation_loss_raw, bbox_distillation_loss_raw

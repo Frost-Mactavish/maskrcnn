@@ -25,7 +25,6 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
         return dota_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset):
         print('do voc evaluation')
-        # return voc_evaluation(**args)
         return voc_evaluation(**args)
     elif isinstance(dataset, datasets.PascalVOCDataset2012):
         return voc_evaluation_inst(**args)
