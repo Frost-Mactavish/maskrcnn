@@ -43,6 +43,6 @@ done
 task=5-5
 for s in {1..2}; do
   exp_dota -t ${task} -n ILOD -s $s
-  exp_dota -t ${task} -n FILOD -s $s --rpn --feat std --cls 1.
+  exp_dota -t ${task} -n FILOD -s $s --rpn --feat std --cls 1. SOLVER.BASE_LR 0.0005
   exp_dota -t ${task} -n MMA --rpn --uce --dist_type uce --cls 0.5 -s $s
 done
