@@ -207,7 +207,13 @@ class RPNModule(torch.nn.Module):
                 ######  Bridge the Future ######
                 if self.cfg.UNK.ENABLE:
                     boxes = add_attention_scores(boxes, attention_maps)
-                    unk_idxes = select_unk_idxes(boxes, targets)
+                    unk_idxes = select_unk_idxes(
+                        boxes,
+                        targets,
+                        obj_topk=self.cfg.UNK.OBJ_TOPK,
+                        attn_topk=self.cfg.UNK.ATTN_TOPK,
+                        unk_iou_gt=self.cfg.UNK.IOU_GT,
+                    )
                     rpn_pse_targets = [box[unk_idx] for box, unk_idx in zip(boxes, unk_idxes)]
                     rpn_targets = rpn_merge_targets(targets, rpn_pse_targets)
                 ################################

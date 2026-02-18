@@ -2,12 +2,10 @@ import argparse
 import datetime
 import logging
 import math
-import os
 import random
 import sys
 import time
 import warnings
-import argparse
 
 import numpy as np
 import torch
@@ -60,8 +58,8 @@ def do_train(
     model_source.eval()
     start_training_time = time.time()
     end = time.time()
-    average_distillation_loss = 0
-    average_faster_rcnn_loss = 0
+    average_distillation_loss = 0.
+    average_faster_rcnn_loss = 0.
 
     for iteration, (images, targets, _, img_id, _) in tqdm(enumerate(data_loader, start_iter), total=max_iter):
         data_time = time.time() - end
@@ -203,7 +201,7 @@ def do_train(
             distillation_losses += rpn_distillation_losses
 
         distillation_dict = {}
-        distillation_dict["distillation_loss"] = distillation_losses.clone().detach()
+        distillation_dict["distillation_loss"] = distillation_losses.detach()
         loss_dict_target.update(distillation_dict)
 
         losses = faster_rcnn_losses + distillation_losses
@@ -216,16 +214,10 @@ def do_train(
             logger.info(f"Loss is {loss}, stop training")
             sys.exit(1)
 
-        if (iteration - 1) > 0:
-            average_distillation_loss = (
-                                                average_distillation_loss * (iteration - 1) + distillation_losses
-                                        ) / iteration
-            average_faster_rcnn_loss = (
-                                               average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses
-                                       ) / iteration
-        else:
-            average_distillation_loss = distillation_losses
-            average_faster_rcnn_loss = faster_rcnn_losses
+        distillation_losses_value = distillation_losses.item()
+        faster_rcnn_losses_value = faster_rcnn_losses.item()
+        average_distillation_loss = (average_distillation_loss * iteration + distillation_losses_value) / (iteration + 1)
+        average_faster_rcnn_loss = (average_faster_rcnn_loss * iteration + faster_rcnn_losses_value) / (iteration + 1)
 
         optimizer.zero_grad()
         losses.backward()
@@ -275,11 +267,6 @@ def do_train(
                 "faster_rcnn_losses_avg", average_faster_rcnn_loss, iteration
             )
 
-        if iteration % checkpoint_period == 0:
-            # checkpointer_target.save("model_last", **arguments_target)
-            checkpointer_target.save(
-                "model_{:07d}".format(iteration), **arguments_target
-            )
         if iteration == max_iter:
             checkpointer_target.save("model_final", **arguments_target)
     total_training_time = time.time() - start_training_time
@@ -440,7 +427,7 @@ def test(cfg, cfg_target, model):
             ap_old = result[:len_old].mean() * 100
             ap_new = result[len_old:].mean() * 100
             ap_all = result.mean() * 100
-            with open(os.path.join("log", f"result.txt"), "a") as fid:
+            with open("log/result.txt", "a") as fid:
                 fid.write(f"{cfg_target.DATASET} {cfg_target.NAME} Task {cfg_target.TASK} Step {cfg_target.STEP}\n")
                 fid.write(f"mAP Old: {ap_old:.1f}, mAP New: {ap_new:.1f}, mAP All: {ap_all:.1f}\n\n")
 
@@ -567,7 +554,7 @@ def main():
     logger_target.info("config yaml file for target model: {}".format(config_file))
 
     model = train(cfg_source, cfg_finetune, cfg_target, logger_target)
-    test(cfg_target, model)
+    test(cfg, cfg_target, model)
 
 
 if __name__ == "__main__":
