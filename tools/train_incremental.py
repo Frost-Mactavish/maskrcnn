@@ -2,7 +2,6 @@ import argparse
 import datetime
 import logging
 import math
-import os
 import random
 import sys
 import time
@@ -46,8 +45,8 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
     model_source.eval()
     start_training_time = time.time()
     end = time.time()
-    average_distillation_loss = 0
-    average_faster_rcnn_loss = 0
+    average_distillation_loss = 0.
+    average_faster_rcnn_loss = 0.
 
     for iteration, (images, targets, _, idx) in tqdm(enumerate(data_loader, start_iter), total=max_iter):
 
@@ -110,7 +109,7 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             distillation_losses += rpn_distillation_losses
 
         distillation_dict = {}
-        distillation_dict['distillation_loss'] = distillation_losses.clone().detach()
+        distillation_dict['distillation_loss'] = distillation_losses.detach()
         loss_dict_target.update(distillation_dict)
 
         losses = faster_rcnn_losses + distillation_losses
@@ -123,12 +122,10 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             logger.info(f"Loss is {loss}, stop training")
             sys.exit(1)
 
-        if (iteration - 1) > 0:
-            average_distillation_loss = (average_distillation_loss * (iteration - 1) + distillation_losses) / iteration
-            average_faster_rcnn_loss = (average_faster_rcnn_loss * (iteration - 1) + faster_rcnn_losses) / iteration
-        else:
-            average_distillation_loss = distillation_losses
-            average_faster_rcnn_loss = faster_rcnn_losses
+        distillation_losses_value = distillation_losses.item()
+        faster_rcnn_losses_value = faster_rcnn_losses.item()
+        average_distillation_loss = (average_distillation_loss * iteration + distillation_losses_value) / (iteration + 1)
+        average_faster_rcnn_loss = (average_faster_rcnn_loss * iteration + faster_rcnn_losses_value) / (iteration + 1)
 
         optimizer.zero_grad()
         losses.backward()
@@ -156,8 +153,6 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
             summary_writer.add_scalar('distillation_losses_avg', average_distillation_loss, iteration)
             summary_writer.add_scalar('faster_rcnn_losses_avg', average_faster_rcnn_loss, iteration)
 
-        if iteration % checkpoint_period == 0:
-            checkpointer_target.save("model_last", **arguments_target)
         if iteration == max_iter:
             checkpointer_target.save("model_final", **arguments_target)
     total_training_time = time.time() - start_training_time
@@ -235,7 +230,7 @@ def test(cfg, cfg_target, model):
             ap_old = result[:len_old].mean() * 100
             ap_new = result[len_old:].mean() * 100
             ap_all = result.mean() * 100
-            with open(os.path.join("log", f"result.txt"), "a") as fid:
+            with open("log/result.txt", "a") as fid:
                 fid.write(f"{cfg_target.DATASET} {cfg_target.NAME} Task {cfg_target.TASK} Step {cfg_target.STEP}\n")
                 fid.write(f"mAP Old: {ap_old:.1f}, mAP New: {ap_new:.1f}, mAP All: {ap_all:.1f}\n\n")
 
