@@ -329,9 +329,8 @@ def train(
         save_to_disk=save_to_disk,
     )
     extra_checkpoint_data_source = checkpointer_source.load(
-        cfg_source.MODEL.SOURCE_WEIGHT
+        cfg_source.MODEL.WEIGHT
     )
-    print("cfg_source.MODEL.SOURCE_WEIGHT:", cfg_source.MODEL.SOURCE_WEIGHT)
 
     checkpointer_finetune = DetectronCheckpointer(
         cfg_finetune,
@@ -344,7 +343,6 @@ def train(
     extra_checkpoint_data_finetune = checkpointer_finetune.load(
         cfg_finetune.MODEL.FINETUNE_WEIGHT
     )
-    print("cfg_finetune.MODEL.FINETUNE_WEIGHT:", cfg_finetune.MODEL.FINETUNE_WEIGHT)
 
     checkpointer_target = DetectronCheckpointer(
         cfg_target,
@@ -356,7 +354,6 @@ def train(
         logger=logger_target,
     )
     extra_checkpoint_data_target = checkpointer_target.load(cfg_target.MODEL.WEIGHT)
-    print("cfg_target.MODEL.WEIGHT:", cfg_target.MODEL.WEIGHT)
     arguments_source.update(extra_checkpoint_data_source)
     arguments_finetune.update(extra_checkpoint_data_finetune)
     arguments_target.update(extra_checkpoint_data_target)
@@ -420,6 +417,7 @@ def test(cfg, cfg_target, model):
             output_folder=output_folder,
             alphabetical_order=cfg_target.TEST.COCO_ALPHABETICAL_ORDER,
             summary_writer=summary_writer,
+            cfg=cfg_target
         )
         
         if len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES) == 0:
@@ -466,10 +464,6 @@ def main():
     cfg_finetune = cfg.clone()
     cfg_target = cfg.clone()
 
-    # TODO: Is this even correct?
-    cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1)
-    cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1)
-
     # LOAD THEN MODIFY PARS FROM CLI
     if args.step >= 2:
         model_weight = f"{full_name}/STEP{args.step - 1}/model_trimmed.pth"
@@ -477,8 +471,10 @@ def main():
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES += (args.step - 1) * cfg_source.CLS_PER_STEP
+        cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = cfg_source.CLS_PER_STEP + 1
     else:
         cfg_source.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
+        cfg_finetune.MODEL.ROI_BOX_HEAD.NUM_CLASSES = len(cfg_source.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES) + 1
     if args.step > 0 and cfg_source.CLS_PER_STEP != -1:
         cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES = (
                 len(cfg_target.MODEL.ROI_BOX_HEAD.NAME_OLD_CLASSES) + 1
@@ -501,6 +497,9 @@ def main():
                                            * cfg_source.CLS_PER_STEP
             ]
         )
+
+    if cfg_target.ROI_HEAD.NUM_CLASSES == cfg.ROI_HEAD.NUM_CLASSES:
+        cfg_target.UNK.ENABLE = False
 
     cfg_source.OUTPUT_DIR = f"{full_name}/STEP{args.step}/SRC"
     cfg_finetune.OUTPUT_DIR = f"{full_name}/STEP{args.step}/FT"

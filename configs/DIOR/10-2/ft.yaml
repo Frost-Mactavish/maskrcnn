@@ -1,7 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "log/DIOR/15-5/STEP0/model_trimmed.pth"
-  FINETUNE_WEIGHT: "log/DIOR/15-1/FT/model_trimmed.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:
@@ -23,10 +22,10 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 21
-    NAME_OLD_CLASSES: [ "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam", "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor" ]
-    NAME_NEW_CLASSES: [ "overpass","stadium", "storagetank", "trainstation", "windmill" ]
-    NAME_EXCLUDED_CLASSES: [ ]
+    NUM_CLASSES: 3
+    NAME_EXCLUDED_CLASSES: [ "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam" ]
+    NAME_NEW_CLASSES: [ "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor", "overpass", "stadium", "storagetank", "trainstation", "windmill" ]
+    NAME_OLD_CLASSES: [ ]
 DATASETS:
   TRAIN: ("dior_train",)
   TEST: ("dior_test",)
@@ -34,25 +33,16 @@ DATALOADER:
   NUM_WORKERS: 8
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  BASE_LR: 0.0005
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1
-  STEPS: (992,)
-  MAX_ITER: 1171
-  CHECKPOINT_PERIOD: 992
-  IMS_PER_BATCH: 4
+  STEPS: (1397, 1883)
+  MAX_ITER: 2045
+  CHECKPOINT_PERIOD: 1883
+  IMS_PER_BATCH: 8
   MOMENTUM: 0.9
 TEST:
   IMS_PER_BATCH: 1
-OUTPUT_DIR: "log"
-TENSORBOARD_DIR: "log"
-CLS_PER_STEP: 1
-PSEUDO_LABELS:
-  ENABLE: True
-  TYPE: 'initial'
-  SUPERVISION: True
-UNK:
-  ENABLE: True
-  OBJ_TOPK: 0.1
-  ATTN_TOPK: 0.1
-  IOU_GT: 0.1
+OUTPUT_DIR: "log/DIOR/10-2/FT"
+TENSORBOARD_DIR: "log/DIOR/10-2/FT"
+CLS_PER_STEP: 2

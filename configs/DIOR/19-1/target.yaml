@@ -1,7 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   WEIGHT: "log/DIOR/19-1/STEP0/model_trimmed.pth"
-  SOURCE_WEIGHT: "log/DIOR/19-1/STEP0/model_trimmed.pth"
   FINETUNE_WEIGHT: "log/DIOR/19-1/FT/model_trimmed.pth"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
@@ -24,7 +23,7 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 21 # total classes : 20 + 1
+    NUM_CLASSES: 21
     NAME_OLD_CLASSES: [ "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam", "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor", "overpass", "stadium", "storagetank", "trainstation" ]
     NAME_NEW_CLASSES: [ "windmill" ]
     NAME_EXCLUDED_CLASSES: [ ]
@@ -35,17 +34,17 @@ DATALOADER:
   NUM_WORKERS: 8
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  BASE_LR: 0.0005 # start learning rate
+  BASE_LR: 0.0005
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.1  # learning rate decay
-  STEPS: (1009,)
-  MAX_ITER: 1211 # number of iteration
-  CHECKPOINT_PERIOD: 1009 # number of iteration to generate check point
-  IMS_PER_BATCH: 4 # number of images per batch
+  GAMMA: 0.1
+  STEPS: (1109,)
+  MAX_ITER: 1310
+  CHECKPOINT_PERIOD: 1109
+  IMS_PER_BATCH: 4
   MOMENTUM: 0.9
-TEST: # testing strategy
-  IMS_PER_BATCH: 1 # number of images per batch
-OUTPUT_DIR: "log" # path to store the result
+TEST:
+  IMS_PER_BATCH: 1
+OUTPUT_DIR: "log"
 TENSORBOARD_DIR: "log"
 PSEUDO_LABELS:
   ENABLE: True

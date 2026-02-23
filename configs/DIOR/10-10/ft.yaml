@@ -22,7 +22,7 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 11 # total classes : 10 + 1
+    NUM_CLASSES: 11
     NAME_OLD_CLASSES: [ ]
     NAME_EXCLUDED_CLASSES: [ "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle", "ship", "tenniscourt", "airport", "chimney", "dam" ]
     NAME_NEW_CLASSES: [ "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor", "overpass", "stadium", "storagetank", "trainstation", "windmill" ]
@@ -33,15 +33,15 @@ DATALOADER:
   NUM_WORKERS: 8
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  BASE_LR: 0.01 # start learning rate
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.1  # learning rate decay
+  GAMMA: 0.1
   STEPS: (6200, 8488)
-  MAX_ITER: 9250 # number of iteration
-  CHECKPOINT_PERIOD: 8488 # number of iteration to generate check point
-  IMS_PER_BATCH: 8 # number of images per batch
+  MAX_ITER: 9250
+  CHECKPOINT_PERIOD: 8488
+  IMS_PER_BATCH: 8
   MOMENTUM: 0.9
-TEST: # testing strategy
-  IMS_PER_BATCH: 1 # number of images per batch
-OUTPUT_DIR: "log/DIOR/10-10/FT" # path to store the result
-TENSORBOARD_DIR: "log/DIOR/10-10/FT" # path to store tensorboard info
+TEST:
+  IMS_PER_BATCH: 1
+OUTPUT_DIR: "log/DIOR/10-10/FT"
+TENSORBOARD_DIR: "log/DIOR/10-10/FT"

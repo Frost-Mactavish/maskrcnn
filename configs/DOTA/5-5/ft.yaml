@@ -1,7 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "log/DOTA/8-7/STEP0/model_trimmed.pth"
-  FINETUNE_WEIGHT: "log/DOTA/8-7/FT/model_trimmed.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:
@@ -24,10 +23,10 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 16
-    NAME_OLD_CLASSES: [ "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle", "large-vehicle", "ship", "tennis-court" ]
-    NAME_NEW_CLASSES: [ "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter" ]
-    NAME_EXCLUDED_CLASSES: [ ]
+    NUM_CLASSES: 6
+    NAME_EXCLUDED_CLASSES: [ "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle" ]
+    NAME_NEW_CLASSES: [ "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter" ]
+    NAME_OLD_CLASSES: [ ]
 DATASETS:
   TRAIN: ("dota_train",)
   TEST: ("dota_test",)
@@ -43,16 +42,13 @@ SOLVER:
   BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1
-  STEPS: (5532,)
-  MAX_ITER: 6619
-  CHECKPOINT_PERIOD: 5532
-  IMS_PER_BATCH: 4
+  STEPS: (4290, 5861)
+  MAX_ITER: 6384
+  CHECKPOINT_PERIOD: 5861
+  IMS_PER_BATCH: 8
   MOMENTUM: 0.9
 TEST:
   IMS_PER_BATCH: 1
-OUTPUT_DIR: "log"
-TENSORBOARD_DIR: "log"
-PSEUDO_LABELS:
-  ENABLE: True
-  TYPE: 'initial'
-  SUPERVISION: True
+OUTPUT_DIR: "log/DOTA/5-5/FT"
+TENSORBOARD_DIR: "log/DOTA/5-5/FT"
+CLS_PER_STEP: 5

@@ -1,5 +1,4 @@
 import argparse
-import os
 import random
 import warnings
 
@@ -95,6 +94,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument("--config-file", "-c", default="", help="path to config file", type=str)
     parser.add_argument("--finetune", "-ft", default=False, action="store_true")
+    parser.add_argument("--finetune_step", "-fs", default=1, type=int)
     parser.add_argument("opts", help="Modify config options using the command-line",
                         default=None, nargs=argparse.REMAINDER)
 
@@ -103,6 +103,19 @@ def main():
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.IS_FINETUNE = args.finetune
+
+    if cfg.CLS_PER_STEP != -1 and args.finetune:
+        
+        all_new_classes = cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES
+
+        right = cfg.CLS_PER_STEP * args.finetune_step
+        left = right - cfg.CLS_PER_STEP
+
+        cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = all_new_classes[left:right]
+
+        future_classes = list(set(all_new_classes) - set(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES))
+        cfg.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES += future_classes
+
     cfg.freeze()
 
     output_dir = cfg.OUTPUT_DIR
@@ -113,6 +126,10 @@ def main():
     logger.info(args)
     logger.info("Loaded configuration file {}".format(args.config_file))
 
+    if cfg.CLS_PER_STEP != -1 and args.finetune:
+        logger.info("Finetuning step {}. Training with classes: {}".format(args.finetune_step, cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES))
+        logger.info("Excluded classes: {}".format(cfg.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES))
+        
     model = train(cfg)
     test(cfg, model)
 
