@@ -1,3 +1,4 @@
+import os
 import argparse
 import random
 import warnings
@@ -115,6 +116,13 @@ def main():
 
         future_classes = list(set(all_new_classes) - set(cfg.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES))
         cfg.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES += future_classes
+
+        # DetectronCheckpointer overrides the checkpoint if it finds "last_checkpoint" 
+        # in the output directory, which is not desired when finetuning on a new step with 
+        # a new set of classes. 
+        # Therefore, we remove "last_checkpoint" if it exists in the output directory
+        if os.path.exists(os.path.join(cfg.OUTPUT_DIR, "last_checkpoint")):
+            os.remove(os.path.join(cfg.OUTPUT_DIR, "last_checkpoint"))
 
     cfg.freeze()
 

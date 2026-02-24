@@ -498,7 +498,7 @@ def main():
             ]
         )
 
-    if cfg_target.ROI_HEAD.NUM_CLASSES == cfg.ROI_HEAD.NUM_CLASSES:
+    if cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES == cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES:
         cfg_target.UNK.ENABLE = False
 
     cfg_source.OUTPUT_DIR = f"{full_name}/STEP{args.step}/SRC"
