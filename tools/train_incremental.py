@@ -124,7 +124,8 @@ def do_train(model_source, model_target, data_loader, optimizer, scheduler, chec
 
         distillation_losses_value = distillation_losses.item()
         faster_rcnn_losses_value = faster_rcnn_losses.item()
-        average_distillation_loss = (average_distillation_loss * iteration + distillation_losses_value) / (iteration + 1)
+        average_distillation_loss = (average_distillation_loss * iteration + distillation_losses_value) / (
+                    iteration + 1)
         average_faster_rcnn_loss = (average_faster_rcnn_loss * iteration + faster_rcnn_losses_value) / (iteration + 1)
 
         optimizer.zero_grad()
@@ -206,7 +207,8 @@ def train(cfg_source, cfg_target, logger_target):
 def test(cfg, cfg_target, model):
     iou_types = ("bbox",)
     dataset_names = cfg_target.DATASETS.TEST
-    output_folders = [cfg_target.OUTPUT_DIR] * len(dataset_names) if cfg_target.OUTPUT_DIR else [None] * len(dataset_names)
+    output_folders = [cfg_target.OUTPUT_DIR] * len(dataset_names) if cfg_target.OUTPUT_DIR else [None] * len(
+        dataset_names)
     data_loaders_val = make_data_loader(cfg_target, is_train=False, is_distributed=False)
     summary_writer = SummaryWriter(log_dir=cfg_target.TENSORBOARD_DIR)
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
@@ -254,7 +256,7 @@ def main():
     parser.add_argument("-beta", "--beta_attentive_roi_distillation", default=0., type=float)
     parser.add_argument("-gamma", "--att_gamma", default=0., type=float)
     parser.add_argument("-mb", "--memory_buffer", default=0, type=int)
-    parser.add_argument("-mt", "--memory_type", default=None, type=str, 
+    parser.add_argument("-mt", "--memory_type", default=None, type=str,
                         choices=['mean', 'random', 'herding'])
     parser.add_argument("opts", help="Modify config options using the command-line",
                         default=None, nargs=argparse.REMAINDER)
@@ -291,7 +293,7 @@ def main():
             args.step * cfg_source.CLS_PER_STEP:]
         cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES = cfg_target.MODEL.ROI_BOX_HEAD.NAME_NEW_CLASSES[
             (args.step - 1) * cfg_target.CLS_PER_STEP: args.step * cfg_source.CLS_PER_STEP]
-    
+
     cfg_source.OUTPUT_DIR = f"{full_name}/STEP{args.step}/SRC"
     cfg_target.OUTPUT_DIR = f"{full_name}/STEP{args.step}"
     cfg_target.TENSORBOARD_DIR = f"{full_name}/STEP{args.step}/tb_logs"
@@ -327,7 +329,8 @@ def main():
     excluded_classes = cfg_target.MODEL.ROI_BOX_HEAD.NAME_EXCLUDED_CLASSES
     num_classes = cfg_target.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1
     logger_target = setup_logger("maskrcnn_benchmark_target_model", output_dir_target, get_rank())
-    logger_target.info(f"All: {num_classes}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
+    logger_target.info(
+        f"All: {num_classes}, Old: {len(old_classes)}, New: {len(new_classes)}, Excluded: {len(excluded_classes)}")
     logger_target.info(args)
     logger_target.info("config yaml file for target model: {}".format(config_file))
 

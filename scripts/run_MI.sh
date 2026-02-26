@@ -34,14 +34,14 @@ done
 alias exp_dota="exp -d DOTA"
 alias box_dota="box -d DOTA"
 
-task=10-1
-for s in {1..5}; do
-  exp_dota -t ${task} -s $s -mb 1000 -gamma 1.0 -alpha 1.0 -beta 1.0
-  box_dota -t ${task} -s $s -mb 1000
-done
-
 task=5-5
 for s in {1..2}; do
   exp_dota -t ${task} -s $s -mb 600 -gamma 1.0 -alpha 0.5 -beta 1.0
   box_dota -t ${task} -s $s -mb 600
+done
+
+task=10-1
+for s in {1..5}; do
+  exp_dota -t ${task} -s $s -mb 1000 -gamma 1.0 -alpha 1.0 -beta 1.0
+  box_dota -t ${task} -s $s -mb 1000
 done

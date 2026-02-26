@@ -1,6 +1,7 @@
 import os
-import torch
 import shutil
+
+import torch
 
 from .dota_utils import merge_and_eval
 

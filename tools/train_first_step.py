@@ -1,9 +1,8 @@
 import argparse
-import os
-import warnings
 import random
-import numpy as np
+import warnings
 
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -91,7 +90,7 @@ def main():
     torch.cuda.manual_seed(random_seed)
     np.random.seed(random_seed)
     random.seed(random_seed)
-    
+
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument("--config-file", "-c", default="", help="path to config file", type=str)
     parser.add_argument("opts", help="Modify config options using the command-line",

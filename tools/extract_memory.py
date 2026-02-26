@@ -1,6 +1,5 @@
 # -*-coding:utf-8-*-
 
-import argparse
 import math
 import os
 import random
@@ -9,7 +8,6 @@ import shutil
 import numpy as np
 from PIL import Image
 
-from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.config.paths_catalog import DatasetCatalog
 
 
