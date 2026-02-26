@@ -23,7 +23,7 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
-    NUM_CLASSES: 6 # total classes : 5 + 1
+    NUM_CLASSES: 6
     NAME_OLD_CLASSES: [ ]
     NAME_NEW_CLASSES: [ "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle" ]
     NAME_EXCLUDED_CLASSES: [ "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank", "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter" ]
@@ -39,15 +39,15 @@ INPUT:
   MIN_SIZE_TEST: 1024
   MAX_SIZE_TEST: 1333
 SOLVER:
-  BASE_LR: 0.01 # start learning rate
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.1  # learning rate decay
-  STEPS: (6752, 9247)
-  MAX_ITER: 10078 # number of iteration
-  CHECKPOINT_PERIOD: 9247 # number of iteration to generate check point
-  IMS_PER_BATCH: 8 # number of images per batch
+  GAMMA: 0.1
+  STEPS: (6752, 9246)
+  MAX_ITER: 10078
+  CHECKPOINT_PERIOD: 9246
+  IMS_PER_BATCH: 8
   MOMENTUM: 0.9
-TEST: # testing strategy
-  IMS_PER_BATCH: 1 # number of images per batch
-OUTPUT_DIR: "log/DOTA/5-10/STEP0" # path to store the result
-TENSORBOARD_DIR: "log/DOTA/5-10/STEP0" # path to store tensorboard info
+TEST:
+  IMS_PER_BATCH: 1
+OUTPUT_DIR: "log/DOTA/5-10/STEP0"
+TENSORBOARD_DIR: "log/DOTA/5-10/STEP0"
