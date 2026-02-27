@@ -11,7 +11,7 @@ from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
 
-def do_voc_evaluation(dataset, predictions, output_folder, logger):
+def do_voc_evaluation(dataset, predictions, output_folder, logger, cfg):
     # TODO need to make the use_07_metric format available
     # for the user to choose
     pred_boxlists = []
@@ -47,6 +47,8 @@ def do_voc_evaluation(dataset, predictions, output_folder, logger):
     for i, ap in enumerate(result["ap"]):
         if i == 0:  # skip background
             continue
+        if cfg.FINETUNE.ENABLE:
+            i += cfg.FINETUNE.OFFSET
         result_str += "{:<16}: {:.4f}\n".format(
             dataset.map_class_id_to_class_name(i), ap
         )

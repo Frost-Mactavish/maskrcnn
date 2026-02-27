@@ -26,7 +26,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
                "tvmonitor")
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
-                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False):
+                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False, offset=0):
         self.root = data_dir
         self.image_set = split  # train, validation, test
         self.keep_difficult = use_difficult
@@ -46,7 +46,7 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self.exclude_classes = excluded_classes
         self.is_train = is_train
         self.is_finetune = is_finetune
-
+        self.offset = offset
         # load data from all categories
         # self._normally_load_voc()
 
@@ -207,13 +207,11 @@ class PascalVOCDataset(torch.utils.data.Dataset):
         self._img_height = height
         self._img_width = width
         target = BoxList(anno["boxes"], (width, height), mode="xyxy")
-        # -------------------------
         if self.is_finetune:
+            labels = anno["labels"] - self.offset
+        else:
             labels = anno["labels"]
-            labels -= len(self.exclude_classes)
-            target.add_field("labels", labels)
-        # -------------------------
-        target.add_field("labels", anno["labels"])
+        target.add_field("labels", labels)
         target.add_field("difficult", anno["difficult"])
         weights = torch.full_like(anno["labels"], 1.0, dtype=torch.float)
         target.add_field("weights", weights)
@@ -335,9 +333,9 @@ class DOTADataset(PascalVOCDataset):
     )
 
     def __init__(self, data_dir, split, use_difficult=False, transforms=None, external_proposal=False, old_classes=[],
-                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False):
+                 new_classes=[], excluded_classes=[], is_train=True, is_finetune=False, offset=0):
         super(DOTADataset, self).__init__(data_dir, split, use_difficult, transforms, external_proposal,
-                                          old_classes, new_classes, excluded_classes, is_train, is_finetune)
+                                          old_classes, new_classes, excluded_classes, is_train, is_finetune, offset)
         self._imgpath = os.path.join(self.root, "JPEGImages", "%s.png")
 
     def get_img_info(self, index):

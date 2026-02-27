@@ -38,7 +38,8 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, exte
             args["new_classes"] = new_classes
             args["excluded_classes"] = excluded_classes
             args["is_train"] = is_train
-            args["is_finetune"] = cfg.IS_FINETUNE if hasattr(cfg, "IS_FINETUNE") else False
+            args["is_finetune"] = cfg.FINETUNE.ENABLE
+            args["offset"] = cfg.FINETUNE.OFFSET
         if data["factory"] == "PascalVOCDataset2012":
             args["use_difficult"] = not is_train
             args["external_proposal"] = external_proposal  # whether to use external proposals
