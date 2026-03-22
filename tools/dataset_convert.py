@@ -30,7 +30,6 @@ from glob import glob
 from xml.etree.ElementTree import Element, SubElement, tostring
 import xml.etree.ElementTree as ET
 from xml.dom.minidom import parseString
-from shutil import copy2
 
 
 def get_data(xml_path):
@@ -57,9 +56,20 @@ def get_data(xml_path):
 
 
 if __name__ == "__main__":
-    prefix_path = ""
-    source_root = f"{prefix_path}/dataset/DOTA"
-    target_root = f"{prefix_path}/dataset/DOTA_xml"
+    dataset = "DOTA"  # or "DIOR"
+    img_shape = (1024, 1024)
+
+    source_root = f"/data/my_code/dataset/DOTA"
+    target_root = f"/data/my_code/dataset/DOTA_xml"
+
+    source_label_dirs = (
+        f"{source_root}/testsplit/labelTxt",
+        f"{source_root}/trainsplit/labelTxt",
+    )
+    source_img_dirs = (
+        f"{source_root}/testsplit/images",
+        f"{source_root}/trainsplit/images",
+    )
 
     target_anno_dir = f"{target_root}/Annotations"
     target_img_dir = f"{target_root}/JPEGImages"
@@ -69,19 +79,14 @@ if __name__ == "__main__":
     os.makedirs(target_img_dir, exist_ok=True)
     os.makedirs(target_txt_dir, exist_ok=True)
 
-    # convert DOTA txt annotations to XML format
-    source_label_dirs = (
-        f"{source_root}/testsplit/labelTxt",
-        f"{source_root}/trainsplit/labelTxt",
-    )
-
+    # convert DOTA txt annotations to XML format and save in target_anno_dir
     for label_dir in source_label_dirs:
         for txt in os.listdir(label_dir):
             if not txt.endswith(".txt"):
                 continue
 
             img_name = txt.replace(".txt", ".png")
-            width, height = 1024, 1024
+            width, height = img_shape
 
             prefix = Element("annotation")
             SubElement(prefix, "filename").text = img_name
@@ -120,20 +125,17 @@ if __name__ == "__main__":
             with open(xml_path, "w", encoding="utf-8") as f:
                 f.write(xml_str)
 
-    train_img_dir = os.path.join(source_root, "trainsplit/images")
-    test_img_dir = os.path.join(source_root, "testsplit/images")
-
-    # copy images to target directory
-    for img_path in glob(os.path.join(train_img_dir, "*")):
-        copy2(img_path, target_img_dir)
-    for img_path in glob(os.path.join(test_img_dir, "*")):
-        copy2(img_path, target_img_dir)
+    # create symlinks to images in target directory
+    for img_dir in source_img_dirs:
+        for img_path in glob(os.path.join(img_dir, "*")):
+            dst = os.path.join(target_img_dir, os.path.basename(img_path))
+            if os.path.lexists(dst):
+                os.remove(dst)
+            os.symlink(os.path.abspath(img_path), dst)
 
     # generate overall trainval.txt and test.txt for dataset
-    train_img_list = [
-        os.path.basename(f) for f in glob(os.path.join(train_img_dir, "*"))
-    ]
-    test_img_list = [os.path.basename(f) for f in glob(os.path.join(test_img_dir, "*"))]
+    train_img_list = [os.path.basename(f) for f in glob(os.path.join(source_img_dirs[1], "*"))]
+    test_img_list = [os.path.basename(f) for f in glob(os.path.join(source_img_dirs[0], "*"))]
 
     with open(os.path.join(target_txt_dir, "trainval.txt"), "w") as f:
         for img_name in train_img_list:
@@ -146,36 +148,20 @@ if __name__ == "__main__":
     # based on overall train/test split files and XML annotations
     # and save them in {dataset_root}/ImageSets/Main/ directory
 
-    # class_name_list = [
-    #     "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
-    #     "ship", "tenniscourt", "airport", "chimney", "dam",
-    #     "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
-    #     "overpass", "stadium", "storagetank", "trainstation", "windmill",
-    # ]
-
-    class_name_list = [
-        "airplane",
-        "baseballfield",
-        "bridge",
-        "groundtrackfield",
-        "vehicle",
-        "ship",
-        "tenniscourt",
-        "airport",
-        "chimney",
-        "dam",
-        "basketballcourt",
-        "Expressway-Service-area",
-        "Expressway-toll-station",
-        "golffield",
-        "harbor",
-        "overpass",
-        "stadium",
-        "storagetank",
-        "trainstation",
-        "windmill",
-    ]
-
+    class_name_list = {
+        "DOTA": (
+            "plane", "baseball-diamond", "bridge", "ground-track-field", "small-vehicle",
+            "large-vehicle", "ship", "tennis-court", "basketball-court", "storage-tank",
+            "soccer-ball-field", "roundabout", "harbor", "swimming-pool", "helicopter",
+        ),
+        "DIOR": (
+            "airplane", "baseballfield", "bridge", "groundtrackfield", "vehicle",
+            "ship", "tenniscourt", "airport", "chimney", "dam",
+            "basketballcourt", "Expressway-Service-area", "Expressway-toll-station", "golffield", "harbor",
+            "overpass", "stadium", "storagetank", "trainstation", "windmill",
+        )
+    }[dataset]
+    
     with open(os.path.join(target_txt_dir, "trainval.txt"), "r") as f:
         train_list = [line.strip() for line in f]
     with open(os.path.join(target_txt_dir, "test.txt"), "r") as f:
